@@ -31,7 +31,7 @@ jobs:
           paths:
             - node_modules
       - run: yarn run build
-      - run: ./node_modules/.bin/journey-deploy execute
+      - run: ./node_modules/.bin/npm-deploy-executor execute
 
 workflows:
   version: 2

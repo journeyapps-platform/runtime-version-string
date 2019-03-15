@@ -19,6 +19,7 @@
   "devDependencies": {
     "@journeyapps/deploy-cli": "^2.4.1",
     "@journeyapps/formatter-cli": "^2.1.5",
+    "@journeyapps/npm-deploy-executor": "2.9.5",
     "@types/jest": "23.3.1",
     "@types/lodash": "^4.14.109",
     "@types/semver": "5.5.0",

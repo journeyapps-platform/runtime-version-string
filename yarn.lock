@@ -127,7 +127,7 @@
     typescript "^3.0.1"
     typescript-json-schema "^0.31.0"
 
-"@journeyapps/npm-deploy-executor@^2.9.5":
+"@journeyapps/npm-deploy-executor@2.9.5", "@journeyapps/npm-deploy-executor@^2.9.5":
   version "2.9.5"
   resolved "https://registry.yarnpkg.com/@journeyapps/npm-deploy-executor/-/npm-deploy-executor-2.9.5.tgz#9bb6fee4d22b32151ccb6f35c3d53cdee1935229"
   integrity sha512-PDDH4utX4uM6DDH5rCy2LElPJFVlTqDdj0/+oKczJ4EiIvnJkqR3WHlJUXGJ4AYwghFkUpi78WNcJKgvyOHDjg==
