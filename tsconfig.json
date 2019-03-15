@@ -6,7 +6,8 @@
     "inlineSourceMap": true,
     "lib": [
       "es2015"
-    ]
+    ],
+    "declaration": true
   },
   "exclude": [
     "./tests",
