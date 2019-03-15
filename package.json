@@ -5,8 +5,6 @@
   "author": "JourneyApps",
   "main": "./lib/RuntimeVersionString.js",
   "scripts": {
-    "postinstall": "yarn build && journey-formatter install",
-    "pretty": "prettier --single-quote --write --print-width 120 './src/**/*.ts'",
     "build": "tsc",
     "test": "yarn jest",
     "format": "journey-formatter format",
