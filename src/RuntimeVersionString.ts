@@ -7,32 +7,54 @@ const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
 const isNumericOnlyString = (string: string) => /^[0-9]+$/.test(string);
 const exists = (value: any) => value != null;
 
-/**
- * This function takes a string and does some basic validation on it before passing
- * the components to be serialised into a Channel. Returns `null` if parsing is
- * unsuccessful.
- */
-interface ParserOptions {
-  buildNrOptional: boolean; // Allows for more relaxed parsing. For instance, a client may want to parse a string that doesn't specify a build nr.
+export enum ErrorCodes {
+  NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
+  NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
+  BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
+  BUILD_NR_NOT_NUMBERIC = 'BUILD_NR_NOT_NUMBERIC',
 }
 
-export const parse = (value: string, options?: ParserOptions) => {
+interface SomeRuntimeValues extends Partial<RuntimeVersionString> {}
+
+const throwIf = <T = SomeRuntimeValues>(predicate: (v: T) => boolean, message: string, value: T) => {
+  if (predicate(value)) {
+    throw new Error(message);
+  }
+  return value;
+}
+
+const throwIfC = fp.curry<(v: SomeRuntimeValues) => boolean, string, SomeRuntimeValues, SomeRuntimeValues>(throwIf);
+
+/* prettier-ignore */
+const trackAndBuildNr: (v: SomeRuntimeValues) => SomeRuntimeValues = fp.pipe([
+  throwIfC(v => !KNOWN_TRACKS.find(fp.equals(v.track)))               (ErrorCodes.NOT_RECOGNISED_TRACK),
+  throwIfC(v => v.track === 'stable' && exists(v.buildNr))            (ErrorCodes.NO_BUILD_NR_ON_STABLE),
+  throwIfC(v => v.track !== 'stable' && !exists(v.buildNr))           (ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK),
+  throwIfC(v => exists(v.buildNr) && !isNumericOnlyString(v.buildNr)) (ErrorCodes.BUILD_NR_NOT_NUMBERIC),
+]);
+
+/**
+ * This function takes a string and does some basic validation on it before passing
+ * the components to be serialised into a Channel. Returns throws a pre-defined error code if parsing is
+ * unsuccessful.
+ */
+
+export const parse = (value: string) => {
   if (!value || !semver.valid(value)) {
     return null;
   }
-  const skipBuildNr = options && options.buildNrOptional;
 
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
   const [buildNr] = parsedSemver.build;
 
+  trackAndBuildNr({ track: track as Track || 'stable', buildNr });
+
   const checks = [
     exists(major),
     exists(minor),
     exists(patch),
-    skipBuildNr || (exists(buildNr) && isNumericOnlyString(buildNr)),
-    !!KNOWN_TRACKS.find(fp.equals(track))
   ];
 
   if (!checks.every(fp.identity)) {
