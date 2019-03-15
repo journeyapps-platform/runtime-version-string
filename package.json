@@ -7,7 +7,8 @@
     "build": "tsc",
     "test": "yarn jest",
     "format": "journey-formatter format",
-    "deploy": "journey-deploy trigger"
+    "deploy": "journey-deploy trigger",
+    "prepare": "journey-formatter install"
   },
   "dependencies": {
     "@journeyapps/backend-client": "0.3.4",
