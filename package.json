@@ -13,7 +13,6 @@
   "dependencies": {
     "@journeyapps/backend-client": "0.3.4",
     "@journeyapps/micro": "2.5.0",
-    "lodash": "^4.17.10",
     "semver": "5.6.0"
   },
   "devDependencies": {
@@ -21,7 +20,6 @@
     "@journeyapps/formatter-cli": "^2.1.5",
     "@journeyapps/npm-deploy-executor": "2.9.5",
     "@types/jest": "23.3.1",
-    "@types/lodash": "^4.14.109",
     "@types/semver": "5.5.0",
     "babel-jest": "^23.4.2",
     "jest": "23.5.0",

@@ -1,37 +1,49 @@
 import * as semver from 'semver';
-import * as fp from 'lodash/fp';
+
+interface SomeRuntimeValues extends Partial<RuntimeVersionString> {}
+type Predicate<T> = (v: T) => boolean;
+type PredicateCodePair = [Predicate<SomeRuntimeValues>, string];
+
 export type Track = 'dev' | 'beta' | 'rc' | 'stable';
-
-const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
-
-const isNumericOnlyString = (string: string) => /^[0-9]+$/.test(string);
-const exists = (value: any) => value != null;
 
 export enum ErrorCodes {
   NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
   BUILD_NR_NOT_NUMBERIC = 'BUILD_NR_NOT_NUMBERIC',
+  BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
 }
 
-interface SomeRuntimeValues extends Partial<RuntimeVersionString> {}
+const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
 
-const throwIf = <T = SomeRuntimeValues>(predicate: (v: T) => boolean, message: string, value: T) => {
+const isNumericOnlyString = (string: string) => /^[0-9]+$/.test(string);
+const exists = (value: any) => value != null;
+
+const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) => {
+  const [predicate, message] = predicateMessagePair;
   if (predicate(value)) {
-    throw new Error(message);
+    throw new Error(
+      `${message}. "${JSON.stringify(
+        value
+      )}" failed checks. Please see https://github.com/journeyapps-platform/runtime-version-string for a list of runtime version string requirements.`
+    );
   }
-  return value;
-}
-
-const throwIfC = fp.curry<(v: SomeRuntimeValues) => boolean, string, SomeRuntimeValues, SomeRuntimeValues>(throwIf);
+};
 
 /* prettier-ignore */
-const trackAndBuildNr: (v: SomeRuntimeValues) => SomeRuntimeValues = fp.pipe([
-  throwIfC(v => !KNOWN_TRACKS.find(fp.equals(v.track)))               (ErrorCodes.NOT_RECOGNISED_TRACK),
-  throwIfC(v => v.track === 'stable' && exists(v.buildNr))            (ErrorCodes.NO_BUILD_NR_ON_STABLE),
-  throwIfC(v => v.track !== 'stable' && !exists(v.buildNr))           (ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK),
-  throwIfC(v => exists(v.buildNr) && !isNumericOnlyString(v.buildNr)) (ErrorCodes.BUILD_NR_NOT_NUMBERIC),
-]);
+const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
+  [v => !KNOWN_TRACKS.find(track => track === v.track),       ErrorCodes.NOT_RECOGNISED_TRACK],
+  [v => v.track === 'stable' && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
+  [v => v.track !== 'stable' && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
+  [v => v.track !== 'dev' && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
+  [v => exists(v.buildNr) && !isNumericOnlyString(v.buildNr), ErrorCodes.BUILD_NR_NOT_NUMBERIC]
+];
+
+const throwIfChecksFail = (value: SomeRuntimeValues) => {
+  checksAndCodesPairs.forEach(pair => {
+    throwErrorIf(pair, value);
+  });
+};
 
 /**
  * This function takes a string and does some basic validation on it before passing
@@ -49,17 +61,11 @@ export const parse = (value: string) => {
   const [track, branchName] = parsedSemver.prerelease;
   const [buildNr] = parsedSemver.build;
 
-  trackAndBuildNr({ track: track as Track || 'stable', buildNr });
-
-  const checks = [
-    exists(major),
-    exists(minor),
-    exists(patch),
-  ];
-
-  if (!checks.every(fp.identity)) {
-    return null;
-  }
+  throwIfChecksFail({
+    track: (track as Track) || 'stable',
+    buildNr,
+    branch: branchName
+  });
 
   return new RuntimeVersionString({
     major: major + '',
