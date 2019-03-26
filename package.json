@@ -11,8 +11,6 @@
     "prepare": "journey-formatter install"
   },
   "dependencies": {
-    "@journeyapps/backend-client": "0.3.4",
-    "@journeyapps/micro": "2.5.0",
     "semver": "5.6.0"
   },
   "devDependencies": {
