@@ -7,6 +7,7 @@ type PredicateCodePair = [Predicate<SomeRuntimeValues>, string];
 export type Track = 'dev' | 'beta' | 'rc' | 'stable';
 
 export enum ErrorCodes {
+  INVALID_INPUT = 'INVALID_INPUT',
   NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
@@ -53,7 +54,7 @@ const throwIfChecksFail = (value: SomeRuntimeValues) => {
 
 export const parse = (value: string) => {
   if (!value || !semver.valid(value)) {
-    return null;
+    throw new Error(`${ErrorCodes.INVALID_INPUT}. Invalid string provided ${value}`);
   }
 
   const parsedSemver = semver.parse(value);
