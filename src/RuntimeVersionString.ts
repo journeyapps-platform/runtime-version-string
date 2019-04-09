@@ -12,12 +12,16 @@ export enum ErrorCodes {
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
   BUILD_NR_INVALID = 'BUILD_NR_INVALID',
+  HASH_INVALID = 'HASH_INVALID',
+  DATE_INVALID = 'DATE_INVALID',
   BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
 }
 
 const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
 
-const isValidBuildNr = (string: string) => /^[0-9\.a-f]+$/.test(string);
+const isValidBuildNr = (string: string) => /^[0-9]+$/.test(string);
+const isValidHash = (string: string) => /^[0-9a-f]+$/.test(string);
+const isValidDate = (string: string) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(string); // Very fuzzy
 const exists = (value: any) => value != null;
 
 const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) => {
@@ -37,7 +41,9 @@ const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
   [v => v.track === 'stable' && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
   [v => v.track !== 'stable' && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
   [v => v.track !== 'dev' && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
-  [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID]
+  [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID],
+  [v => exists(v.hash) && !isValidHash(v.hash),               ErrorCodes.HASH_INVALID],
+  [v => exists(v.date) && !isValidDate(v.date),               ErrorCodes.DATE_INVALID]
 ];
 
 const throwIfChecksFail = (value: SomeRuntimeValues) => {
@@ -60,12 +66,14 @@ export const parse = (value: string) => {
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  const buildNr = parsedSemver.build.length > 0 ? parsedSemver.build.join('.') : null;
+  const [buildNr, hash, date] = parsedSemver.build;
 
   throwIfChecksFail({
     track: (track as Track) || 'stable',
     buildNr,
-    branch: branchName
+    branch: branchName,
+    hash,
+    date
   });
 
   return new RuntimeVersionString({
@@ -74,6 +82,8 @@ export const parse = (value: string) => {
     patch: patch + '',
     track: track as Track,
     buildNr,
+    hash,
+    date,
     branch: branchName
   });
 };
@@ -82,6 +92,8 @@ interface RuntimeVersionStringObject {
   version: string;
   track: Track;
   buildNr: string;
+  hash: string;
+  date: string;
   branch: string;
 }
 
@@ -91,6 +103,8 @@ export type VersionStringComponentsObject = {
   patch: string;
   track: Track;
   buildNr?: string;
+  hash?: string;
+  date?: string;
   branch?: string;
 };
 
@@ -121,6 +135,14 @@ export class RuntimeVersionString {
     return this.value.buildNr;
   }
 
+  get hash() {
+    return this.value.hash;
+  }
+
+  get date() {
+    return this.value.date;
+  }
+
   modify(newValue: Partial<VersionStringComponentsObject>) {
     return new RuntimeVersionString({
       ...this.value,
@@ -129,12 +151,14 @@ export class RuntimeVersionString {
   }
 
   toJSON(): RuntimeVersionStringObject {
-    const rawVesrion = this.toString();
+    const rawVersion = this.toString();
     return {
-      version: rawVesrion,
+      version: rawVersion,
       track: this.value.track,
       buildNr: this.value.buildNr,
-      branch: this.value.branch || null
+      branch: this.value.branch || null,
+      hash: this.value.hash || null,
+      date: this.value.date || null
     };
   }
 
@@ -149,7 +173,9 @@ export class RuntimeVersionString {
           '-' +
           this.value.track +
           (exists(this.value.branch) ? '.' + this.value.branch : '') +
-          (exists(this.value.buildNr) ? '+' + this.value.buildNr : '')
+          (exists(this.value.buildNr) ? '+' + this.value.buildNr : '') +
+          (exists(this.value.hash) ? '.' + this.value.hash : '') +
+          (exists(this.value.date) ? '.' + this.value.date : '')
       ).raw;
     } catch (e) {
       return '';
