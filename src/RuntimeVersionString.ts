@@ -11,13 +11,13 @@ export enum ErrorCodes {
   NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
-  BUILD_NR_NOT_NUMBERIC = 'BUILD_NR_NOT_NUMBERIC',
+  BUILD_NR_INVALID = 'BUILD_NR_INVALID',
   BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
 }
 
 const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
 
-const isNumericOnlyString = (string: string) => /^[0-9]+$/.test(string);
+const isValidBuildNr = (string: string) => /^[0-9\.a-f]+$/.test(string);
 const exists = (value: any) => value != null;
 
 const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) => {
@@ -37,7 +37,7 @@ const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
   [v => v.track === 'stable' && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
   [v => v.track !== 'stable' && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
   [v => v.track !== 'dev' && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
-  [v => exists(v.buildNr) && !isNumericOnlyString(v.buildNr), ErrorCodes.BUILD_NR_NOT_NUMBERIC]
+  [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID]
 ];
 
 const throwIfChecksFail = (value: SomeRuntimeValues) => {
@@ -60,7 +60,7 @@ export const parse = (value: string) => {
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  const [buildNr] = parsedSemver.build;
+  const buildNr = parsedSemver.build.length > 0 ? parsedSemver.build.join('.') : null;
 
   throwIfChecksFail({
     track: (track as Track) || 'stable',
