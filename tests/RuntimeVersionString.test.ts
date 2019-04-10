@@ -20,8 +20,6 @@ describe('RuntimeVersionString', () => {
     expect(c1.track).toBe('beta');
     expect(c1.buildNr).toBe('1');
     expect(c1.branch).toBeUndefined();
-    expect(c1.hash).toBeUndefined();
-    expect(c1.date).toBeUndefined();
     expect(c1.toString()).toBe(first);
 
     expect(c2.major).toBe('1');
@@ -30,8 +28,6 @@ describe('RuntimeVersionString', () => {
     expect(c2.track).toBe('dev');
     expect(c2.branch).toBe('something-else-here');
     expect(c2.buildNr).toBe('12');
-    expect(c2.hash).toBeUndefined();
-    expect(c2.date).toBeUndefined();
     expect(c2.toString()).toBe(second);
 
     expect(c3.major).toBe('1');
@@ -39,13 +35,10 @@ describe('RuntimeVersionString', () => {
     expect(c3.patch).toBe('3');
     expect(c3.track).toBe('rc');
     expect(c3.buildNr).toBe('1');
-    expect(c3.hash).toBeUndefined();
-    expect(c3.date).toBeUndefined();
     expect(c3.toString()).toBe(third);
 
     expect(c4.buildNr).toBe('12');
-    expect(c4.hash).toBe('abcdef1');
-    expect(c4.date).toBe('2019-04-09');
+    expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
     expect(c4.toString()).toBe(fourth);
   });
 
@@ -57,10 +50,6 @@ describe('RuntimeVersionString', () => {
     const fifthBroken = '1.1.1-beta+A';
     const sixthBroken = '123';
     const seventhBroken = 'a';
-    const eightBroken = '1.2.3-dev.something-else-here+12.zzzzz.2019-04-09';
-    const ninethBroken = '1.2.3-dev.something-else-here+12.abcdef1.201904-09';
-    // const c8 = parse(eightBroken);
-    // expect(c8.hash).toBe('a');
 
     expect(() => parse(firstBroken)).toThrow(ErrorCodes.NOT_RECOGNISED_TRACK);
     expect(() => parse(secondBroken)).toThrow(ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY);
@@ -69,7 +58,5 @@ describe('RuntimeVersionString', () => {
     expect(() => parse(fifthBroken)).toThrow(ErrorCodes.BUILD_NR_INVALID);
     expect(() => parse(sixthBroken)).toThrow(ErrorCodes.INVALID_INPUT);
     expect(() => parse(seventhBroken)).toThrow(ErrorCodes.INVALID_INPUT);
-    expect(() => parse(eightBroken)).toThrow(ErrorCodes.HASH_INVALID);
-    expect(() => parse(ninethBroken)).toThrow(ErrorCodes.DATE_INVALID);
   });
 });
