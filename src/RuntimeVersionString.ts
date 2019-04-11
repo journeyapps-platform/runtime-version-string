@@ -177,8 +177,7 @@ export class RuntimeVersionString {
           '-' +
           this.value.track +
           (exists(this.value.branch) ? '.' + this.value.branch : '') +
-          (exists(this.value.buildNr) ? '+' + this.value.buildNr : '') +
-          (exists(this.value.buildMeta) ? '.' + this.value.buildMeta : '')
+          (exists(this.value.buildNr) ? '+' + this.buildString : '')
       ).raw;
     } catch (e) {
       return '';
