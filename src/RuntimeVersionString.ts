@@ -60,8 +60,9 @@ export const parse = (value: string) => {
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  const buildNr = parsedSemver.build.shift(); // Removes first value
-  const buildMeta = parsedSemver.build.length > 0 ? parsedSemver.build.join('.') : null;
+  const { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
+  // const buildNr = parsedSemver.build.shift(); // Removes first value
+  // const buildMeta = parsedSemver.build.length > 0 ? parsedSemver.build.join('.') : null;
 
   throwIfChecksFail({
     track: (track as Track) || 'stable',
@@ -87,6 +88,11 @@ interface RuntimeVersionStringObject {
   buildNr: string;
   buildMeta: string;
   branch: string;
+}
+
+interface BuildStringComponent {
+  buildNr?: string;
+  buildMeta?: string;
 }
 
 export type VersionStringComponentsObject = {
@@ -130,6 +136,18 @@ export class RuntimeVersionString {
     return this.value.buildMeta;
   }
 
+  get buildString() {
+    if (exists(this.buildNr)) {
+      if (exists(this.buildMeta)) {
+        return this.buildNr + '.' + this.buildMeta;
+      } else {
+        return this.buildNr;
+      }
+    } else {
+      return null;
+    }
+  }
+
   modify(newValue: Partial<VersionStringComponentsObject>) {
     return new RuntimeVersionString({
       ...this.value,
@@ -169,5 +187,18 @@ export class RuntimeVersionString {
 
   static empty() {
     return new RuntimeVersionString({ major: null, minor: null, patch: null, track: 'dev' });
+  }
+
+  static parseBuildString(buildString: string | string[]): BuildStringComponent {
+    let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
+    if (typeof buildString == 'string') {
+      buildObject = buildString.split('.');
+    }
+    let buildNr = buildObject.shift(); // Removes first value
+    if (buildNr == '') {
+      buildNr = null;
+    }
+    const buildMeta = buildObject.length > 0 ? buildObject.join('.') : null;
+    return { buildNr, buildMeta };
   }
 }

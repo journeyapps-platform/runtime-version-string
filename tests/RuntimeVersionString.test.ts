@@ -19,7 +19,9 @@ describe('RuntimeVersionString', () => {
     expect(c1.patch).toBe('3');
     expect(c1.track).toBe('beta');
     expect(c1.buildNr).toBe('1');
+    expect(c1.buildMeta).toBeNull();
     expect(c1.branch).toBeUndefined();
+    expect(c1.buildString).toBe('1');
     expect(c1.toString()).toBe(first);
 
     expect(c2.major).toBe('1');
@@ -28,6 +30,7 @@ describe('RuntimeVersionString', () => {
     expect(c2.track).toBe('dev');
     expect(c2.branch).toBe('something-else-here');
     expect(c2.buildNr).toBe('12');
+    expect(c2.buildString).toBe('12');
     expect(c2.toString()).toBe(second);
 
     expect(c3.major).toBe('1');
@@ -35,11 +38,38 @@ describe('RuntimeVersionString', () => {
     expect(c3.patch).toBe('3');
     expect(c3.track).toBe('rc');
     expect(c3.buildNr).toBe('1');
+    expect(c3.buildString).toBe('1');
     expect(c3.toString()).toBe(third);
 
     expect(c4.buildNr).toBe('12');
     expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
+    expect(c4.buildString).toBe('12.abcdef1.2019-04-09');
     expect(c4.toString()).toBe(fourth);
+
+    expect(RuntimeVersionString.parseBuildString('12.abcdef1.2019-04-09')).toEqual({
+      buildNr: '12',
+      buildMeta: 'abcdef1.2019-04-09'
+    });
+    expect(RuntimeVersionString.parseBuildString('12')).toEqual({
+      buildNr: '12',
+      buildMeta: null
+    });
+    expect(RuntimeVersionString.parseBuildString(['12'])).toEqual({
+      buildNr: '12',
+      buildMeta: null
+    });
+    expect(RuntimeVersionString.parseBuildString('')).toEqual({
+      buildNr: null,
+      buildMeta: null
+    });
+    expect(RuntimeVersionString.parseBuildString([''])).toEqual({
+      buildNr: null,
+      buildMeta: null
+    });
+    expect(RuntimeVersionString.parseBuildString(['12', 'abcdef1', '2019-04-09'])).toEqual({
+      buildNr: '12',
+      buildMeta: 'abcdef1.2019-04-09'
+    });
   });
 
   it('throws as expected', () => {
