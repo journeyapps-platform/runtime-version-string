@@ -11,13 +11,13 @@ export enum ErrorCodes {
   NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
-  BUILD_NR_NOT_NUMBERIC = 'BUILD_NR_NOT_NUMBERIC',
+  BUILD_NR_INVALID = 'BUILD_NR_INVALID',
   BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
 }
 
 const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
 
-const isNumericOnlyString = (string: string) => /^[0-9]+$/.test(string);
+const isValidBuildNr = (string: string) => /^[0-9]+$/.test(string);
 const exists = (value: any) => value != null;
 
 const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) => {
@@ -37,7 +37,7 @@ const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
   [v => v.track === 'stable' && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
   [v => v.track !== 'stable' && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
   [v => v.track !== 'dev' && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
-  [v => exists(v.buildNr) && !isNumericOnlyString(v.buildNr), ErrorCodes.BUILD_NR_NOT_NUMBERIC]
+  [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID]
 ];
 
 const throwIfChecksFail = (value: SomeRuntimeValues) => {
@@ -60,12 +60,13 @@ export const parse = (value: string) => {
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  const [buildNr] = parsedSemver.build;
+  const { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
 
   throwIfChecksFail({
     track: (track as Track) || 'stable',
     buildNr,
-    branch: branchName
+    branch: branchName,
+    buildMeta
   });
 
   return new RuntimeVersionString({
@@ -74,6 +75,7 @@ export const parse = (value: string) => {
     patch: patch + '',
     track: track as Track,
     buildNr,
+    buildMeta,
     branch: branchName
   });
 };
@@ -82,7 +84,13 @@ interface RuntimeVersionStringObject {
   version: string;
   track: Track;
   buildNr: string;
+  buildMeta: string;
   branch: string;
+}
+
+interface BuildStringComponent {
+  buildNr?: string;
+  buildMeta?: string;
 }
 
 export type VersionStringComponentsObject = {
@@ -91,6 +99,7 @@ export type VersionStringComponentsObject = {
   patch: string;
   track: Track;
   buildNr?: string;
+  buildMeta?: string;
   branch?: string;
 };
 
@@ -121,6 +130,22 @@ export class RuntimeVersionString {
     return this.value.buildNr;
   }
 
+  get buildMeta() {
+    return this.value.buildMeta;
+  }
+
+  get buildString() {
+    if (exists(this.buildNr)) {
+      if (exists(this.buildMeta)) {
+        return this.buildNr + '.' + this.buildMeta;
+      } else {
+        return this.buildNr;
+      }
+    } else {
+      return null;
+    }
+  }
+
   modify(newValue: Partial<VersionStringComponentsObject>) {
     return new RuntimeVersionString({
       ...this.value,
@@ -129,11 +154,12 @@ export class RuntimeVersionString {
   }
 
   toJSON(): RuntimeVersionStringObject {
-    const rawVesrion = this.toString();
+    const rawVersion = this.toString();
     return {
-      version: rawVesrion,
+      version: rawVersion,
       track: this.value.track,
       buildNr: this.value.buildNr,
+      buildMeta: this.value.buildMeta || null,
       branch: this.value.branch || null
     };
   }
@@ -149,7 +175,7 @@ export class RuntimeVersionString {
           '-' +
           this.value.track +
           (exists(this.value.branch) ? '.' + this.value.branch : '') +
-          (exists(this.value.buildNr) ? '+' + this.value.buildNr : '')
+          (exists(this.value.buildNr) ? '+' + this.buildString : '')
       ).raw;
     } catch (e) {
       return '';
@@ -158,5 +184,18 @@ export class RuntimeVersionString {
 
   static empty() {
     return new RuntimeVersionString({ major: null, minor: null, patch: null, track: 'dev' });
+  }
+
+  static parseBuildString(buildString: string | string[]): BuildStringComponent {
+    let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
+    if (typeof buildString == 'string') {
+      buildObject = buildString.split('.');
+    }
+    let buildNr = buildObject.shift(); // Removes first value
+    if (buildNr == '') {
+      buildNr = null;
+    }
+    const buildMeta = buildObject.length > 0 ? buildObject.join('.') : null;
+    return { buildNr, buildMeta };
   }
 }
