@@ -187,6 +187,9 @@ export class RuntimeVersionString {
   }
 
   static isEmpty(runtimeVersion: RuntimeVersionString): boolean {
+    if (!runtimeVersion) {
+      throw new Error(ErrorCodes.INVALID_INPUT);
+    }
     return (
       runtimeVersion.major == null &&
       runtimeVersion.minor == null &&

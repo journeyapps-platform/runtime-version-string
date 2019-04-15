@@ -104,5 +104,6 @@ describe('RuntimeVersionString', () => {
     expect(() => parse(fifthBroken)).toThrow(ErrorCodes.BUILD_NR_INVALID);
     expect(() => parse(sixthBroken)).toThrow(ErrorCodes.INVALID_INPUT);
     expect(() => parse(seventhBroken)).toThrow(ErrorCodes.INVALID_INPUT);
+    expect(() => RuntimeVersionString.isEmpty(null)).toThrow(ErrorCodes.INVALID_INPUT);
   });
 });
