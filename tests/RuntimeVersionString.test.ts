@@ -24,6 +24,17 @@ describe('RuntimeVersionString', () => {
     expect(c1.buildString).toBe('1');
     expect(c1.toString()).toBe(first);
 
+    expect(RuntimeVersionString.isEmpty(c1)).toBe(false);
+    const clearedC1 = c1.modify({
+      major: null,
+      minor: null,
+      patch: null,
+      branch: null,
+      buildNr: null,
+      buildMeta: null
+    });
+    expect(RuntimeVersionString.isEmpty(clearedC1)).toBe(true);
+
     expect(c2.major).toBe('1');
     expect(c2.minor).toBe('2');
     expect(c2.patch).toBe('3');
@@ -32,6 +43,7 @@ describe('RuntimeVersionString', () => {
     expect(c2.buildNr).toBe('12');
     expect(c2.buildString).toBe('12');
     expect(c2.toString()).toBe(second);
+    expect(RuntimeVersionString.isEmpty(c2)).toBe(false);
 
     expect(c3.major).toBe('1');
     expect(c3.minor).toBe('3');
@@ -40,11 +52,13 @@ describe('RuntimeVersionString', () => {
     expect(c3.buildNr).toBe('1');
     expect(c3.buildString).toBe('1');
     expect(c3.toString()).toBe(third);
+    expect(RuntimeVersionString.isEmpty(c3)).toBe(false);
 
     expect(c4.buildNr).toBe('12');
     expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
     expect(c4.buildString).toBe('12.abcdef1.2019-04-09');
     expect(c4.toString()).toBe(fourth);
+    expect(RuntimeVersionString.isEmpty(c4)).toBe(false);
 
     expect(RuntimeVersionString.parseBuildString('12.abcdef1.2019-04-09')).toEqual({
       buildNr: '12',
@@ -70,6 +84,8 @@ describe('RuntimeVersionString', () => {
       buildNr: '12',
       buildMeta: 'abcdef1.2019-04-09'
     });
+
+    expect(RuntimeVersionString.isEmpty(RuntimeVersionString.empty())).toBe(true);
   });
 
   it('throws as expected', () => {

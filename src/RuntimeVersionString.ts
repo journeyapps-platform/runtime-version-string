@@ -186,6 +186,16 @@ export class RuntimeVersionString {
     return new RuntimeVersionString({ major: null, minor: null, patch: null, track: 'dev' });
   }
 
+  static isEmpty(runtimeVersion: RuntimeVersionString): boolean {
+    return (
+      runtimeVersion.major == null &&
+      runtimeVersion.minor == null &&
+      runtimeVersion.patch == null &&
+      runtimeVersion.branch == null &&
+      runtimeVersion.buildString == null
+    );
+  }
+
   static parseBuildString(buildString: string | string[]): BuildStringComponent {
     let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
     if (typeof buildString == 'string') {
