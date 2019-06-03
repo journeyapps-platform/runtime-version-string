@@ -167,12 +167,14 @@ export class RuntimeVersionString {
 
   toString() {
     try {
+      const majMinPat = this.value.major + '.' + this.value.minor + '.' + this.value.patch;
+
+      if (this.track === 'stable') {
+        return semver.parse(majMinPat).raw;
+      }
+
       return semver.parse(
-        this.value.major +
-          '.' +
-          this.value.minor +
-          '.' +
-          this.value.patch +
+        majMinPat +
           '-' +
           this.value.track +
           (exists(this.value.branch) ? '.' + this.value.branch : '') +
