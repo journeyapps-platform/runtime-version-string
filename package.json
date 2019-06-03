@@ -1,6 +1,6 @@
 {
   "name": "@journeyapps/runtime-version-string",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": "JourneyApps",
   "main": "./lib/RuntimeVersionString.js",
   "scripts": {
