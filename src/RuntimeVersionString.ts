@@ -62,8 +62,9 @@ export const parse = (value: string) => {
   const [track, branchName] = parsedSemver.prerelease;
   const { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
 
+  const actualTrack = (track || 'stable') as Track;
   throwIfChecksFail({
-    track: (track as Track) || 'stable',
+    track: actualTrack,
     buildNr,
     branch: branchName,
     buildMeta
@@ -73,7 +74,7 @@ export const parse = (value: string) => {
     major: major + '',
     minor: minor + '',
     patch: patch + '',
-    track: track as Track,
+    track: actualTrack,
     buildNr,
     buildMeta,
     branch: branchName
