@@ -106,4 +106,23 @@ describe('RuntimeVersionString', () => {
     expect(() => parse(seventhBroken)).toThrow(ErrorCodes.INVALID_INPUT);
     expect(() => RuntimeVersionString.isEmpty(null)).toThrow(ErrorCodes.INVALID_INPUT);
   });
+
+  it('should fallback to a value of `stable` when track is not provided', () => {
+    expect(parse('1.2.3').track).toBe('stable');
+    expect(parse('1.2.3-stable').track).toBe('stable');
+    expect(parse('1.2.3-beta+1').track).toBe('beta');
+  });
+
+  it('stringifies versions as expected', () => {
+    const stable = '1.2.3';
+    const stablePlus = '1.2.3-stable';
+    const rc = '1.2.3-rc+1';
+    const beta = '1.2.3-beta+1';
+    const dev = '1.2.3-dev+1.test.123';
+    expect(parse(stable).toString()).toBe(stable);
+    expect(parse(stablePlus).toString()).toBe(stable);
+    expect(parse(rc).toString()).toBe(rc);
+    expect(parse(beta).toString()).toBe(beta);
+    expect(parse(dev).toString()).toBe(dev);
+  });
 });
