@@ -119,6 +119,10 @@ export class RuntimeVersionString {
     return this.value.patch;
   }
 
+  get base() {
+    return [this.major, this.minor, this.patch].join('.');
+  }
+
   get branch() {
     return this.value.branch;
   }
