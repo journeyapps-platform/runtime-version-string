@@ -36,7 +36,7 @@ describe('RuntimeVersionString', () => {
     });
     expect(RuntimeVersionString.isEmpty(clearedC1)).toBe(true);
 
-    expect(c1.base).toBe('1.2.3');
+    expect(c2.base).toBe('1.2.3');
     expect(c2.major).toBe('1');
     expect(c2.minor).toBe('2');
     expect(c2.patch).toBe('3');
@@ -47,7 +47,7 @@ describe('RuntimeVersionString', () => {
     expect(c2.toString()).toBe(second);
     expect(RuntimeVersionString.isEmpty(c2)).toBe(false);
 
-    expect(c1.base).toBe('1.2.3');
+    expect(c3.base).toBe('1.3.3');
     expect(c3.major).toBe('1');
     expect(c3.minor).toBe('3');
     expect(c3.patch).toBe('3');
@@ -57,7 +57,7 @@ describe('RuntimeVersionString', () => {
     expect(c3.toString()).toBe(third);
     expect(RuntimeVersionString.isEmpty(c3)).toBe(false);
 
-    expect(c1.base).toBe('1.2.3');
+    expect(c4.base).toBe('1.2.3');
     expect(c4.buildNr).toBe('12');
     expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
     expect(c4.buildString).toBe('12.abcdef1.2019-04-09');
