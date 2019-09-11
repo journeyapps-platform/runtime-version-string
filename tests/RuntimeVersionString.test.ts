@@ -130,4 +130,14 @@ describe('RuntimeVersionString', () => {
     expect(parse(beta).toString()).toBe(beta);
     expect(parse(dev).toString()).toBe(dev);
   });
+
+  it('parses bundled runtime versions', () => {
+    const bundledVersion = '4.58.6-dev.3dfa72698.d6eefc0';
+    const parsed = parse(bundledVersion);
+    expect(parsed.base).toBe('4.58.6');
+    expect(parsed.major).toBe('4');
+    expect(parsed.minor).toBe('58');
+    expect(parsed.patch).toBe('6');
+    expect(parsed.track).toBe('dev');
+  });
 });
