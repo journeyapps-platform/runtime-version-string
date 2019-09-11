@@ -31,6 +31,11 @@ const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntim
   }
 };
 
+const isDevBundledRuntime = value => {
+  let DEV_BUNDLED_REGEX = /^(\d)+\.(\d)+\.(\d)-dev.(\w){5,}\.(\w){5,}$/;
+  return !!value.match(DEV_BUNDLED_REGEX);
+};
+
 /* prettier-ignore */
 const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
   [v => !KNOWN_TRACKS.find(track => track === v.track),       ErrorCodes.NOT_RECOGNISED_TRACK],
@@ -60,7 +65,12 @@ export const parse = (value: string) => {
   const parsedSemver = semver.parse(value);
   const { major, minor, patch } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  const { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
+  let { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
+  if (isDevBundledRuntime(value)) {
+    // We don't have to reconstruct devBundledRuntimes, but we don't want the parsing to fail,
+    // so we put a dummy buildNr of "0"
+    buildNr = '0';
+  }
 
   const actualTrack = (track || 'stable') as Track;
   throwIfChecksFail({
