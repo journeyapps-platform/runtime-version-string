@@ -2,13 +2,63 @@ name: Publish Packages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+    tags-ignore:
+      - '**'
+
+env:
+  SECRETS: ${{ toJSON(secrets) }}
 
 jobs:
-  build:
+  build-and-publish:
+    name: Build and Publish
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: journeyapps-platform/ci-actions
+          token: ${{ secrets.SHARED_GH_TOKEN }}
+          path: .github/ci
+          ref: v1
 
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Setup NodeJS
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install PNPM
+        run: npm i pnpm@7 -g
+
+      - name: Install Dependencies
+        uses: ./.github/ci/actions/npm-install
+        with:
+          client: pnpm
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Test packages
+        run: pnpm test
+
+      - name: Authenticate
+        run: |
+          echo "registry=https://registry.npmjs.org/" >> $HOME/.npmrc
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> $HOME/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Dev Dependencies
+        run: |
+          VERSION=0.0.0-dev.$(git rev-parse --short "$GITHUB_SHA")
+          rm -rf .git
+          echo "Publishing "$VERSION
+          pnpm version "${version}" --git-tag-version false
+          pnpm publish --tag next --no-git-checks --access restricted
+        if: ${{ github.ref != 'refs/heads/master' }}
+
+      - name: Publish Dependencies
+        run: pnpm publish --no-git-checks
+        if: ${{ github.ref == 'refs/heads/master' }}
