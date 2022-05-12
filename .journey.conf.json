@@ -1,4 +1,6 @@
 {
+  "project": "runtime-version-string",
+
   "bot": {
     "checks": {
       "version": true
