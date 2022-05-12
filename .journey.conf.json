@@ -1,22 +1,14 @@
 {
-  "environments": [
-    {
-      "name": "dev",
-      "scripts": {
-        "version": "npm version",
-        "publish": "npm publish --access restricted --tag next"
-      }
-    },
-    {
-      "name": "prod",
-      "branch": "master",
-      "production": true,
-      "scripts": {
-        "publish": "npm publish"
-      }
+  "project": "runtime-version-string",
+
+  "bot": {
+    "checks": {
+      "version": true
     }
-  ],
+  },
+  "environments": [],
   "ci": {
+    "type": "github",
     "organization": "journeyapps-platform",
     "project": "runtime-version-string"
   }

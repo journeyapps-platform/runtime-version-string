@@ -1,121 +1,15 @@
 import * as semver from 'semver';
+import {
+  BuildString,
+  ErrorCodes,
+  IRuntimeVersionString,
+  RuntimeVersionStringDef,
+  Track,
+  VersionString
+} from './RuntimeVersionDefinition';
 
-interface SomeRuntimeValues extends Partial<RuntimeVersionString> {}
-type Predicate<T> = (v: T) => boolean;
-type PredicateCodePair = [Predicate<SomeRuntimeValues>, string];
-
-export type Track = 'dev' | 'beta' | 'rc' | 'stable';
-
-export enum ErrorCodes {
-  INVALID_INPUT = 'INVALID_INPUT',
-  NOT_RECOGNISED_TRACK = 'NOT_RECOGNISED_TRACK',
-  NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
-  BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
-  BUILD_NR_INVALID = 'BUILD_NR_INVALID',
-  BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
-}
-
-const KNOWN_TRACKS: Track[] = ['dev', 'beta', 'rc', 'stable'];
-
-const isValidBuildNr = (string: string) => /^[0-9]+$/.test(string);
-const exists = (value: any) => value != null;
-
-const throwErrorIf = (predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) => {
-  const [predicate, message] = predicateMessagePair;
-  if (predicate(value)) {
-    throw new Error(
-      `${message}. "${JSON.stringify(
-        value
-      )}" failed checks. Please see https://github.com/journeyapps-platform/runtime-version-string for a list of runtime version string requirements.`
-    );
-  }
-};
-
-const isDevBundledRuntime = value => {
-  let DEV_BUNDLED_REGEX = /^(\d)+\.(\d)+\.(\d)-dev.(\w){5,}\.(\w){5,}$/;
-  return !!value.match(DEV_BUNDLED_REGEX);
-};
-
-/* prettier-ignore */
-const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
-  [v => !KNOWN_TRACKS.find(track => track === v.track),       ErrorCodes.NOT_RECOGNISED_TRACK],
-  [v => v.track === 'stable' && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
-  [v => v.track !== 'stable' && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
-  [v => v.track !== 'dev' && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
-  [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID]
-];
-
-const throwIfChecksFail = (value: SomeRuntimeValues) => {
-  checksAndCodesPairs.forEach(pair => {
-    throwErrorIf(pair, value);
-  });
-};
-
-/**
- * This function takes a string and does some basic validation on it before passing
- * the components to be serialised into a Channel. Returns throws a pre-defined error code if parsing is
- * unsuccessful.
- */
-
-export const parse = (value: string) => {
-  if (!value || !semver.valid(value)) {
-    throw new Error(`${ErrorCodes.INVALID_INPUT}. Invalid string provided ${value}`);
-  }
-
-  const parsedSemver = semver.parse(value);
-  const { major, minor, patch } = parsedSemver;
-  const [track, branchName] = parsedSemver.prerelease;
-  let { buildNr, buildMeta } = RuntimeVersionString.parseBuildString(parsedSemver.build);
-  if (isDevBundledRuntime(value)) {
-    // We don't have to reconstruct devBundledRuntimes, but we don't want the parsing to fail,
-    // so we put a dummy buildNr of "0"
-    buildNr = '0';
-  }
-
-  const actualTrack = (track || 'stable') as Track;
-  throwIfChecksFail({
-    track: actualTrack,
-    buildNr,
-    branch: branchName,
-    buildMeta
-  });
-
-  return new RuntimeVersionString({
-    major: major + '',
-    minor: minor + '',
-    patch: patch + '',
-    track: actualTrack,
-    buildNr,
-    buildMeta,
-    branch: branchName
-  });
-};
-
-interface RuntimeVersionStringObject {
-  version: string;
-  track: Track;
-  buildNr: string;
-  buildMeta: string;
-  branch: string;
-}
-
-interface BuildStringComponent {
-  buildNr?: string;
-  buildMeta?: string;
-}
-
-export type VersionStringComponentsObject = {
-  major: string;
-  minor: string;
-  patch: string;
-  track: Track;
-  buildNr?: string;
-  buildMeta?: string;
-  branch?: string;
-};
-
-export class RuntimeVersionString {
-  constructor(readonly value: VersionStringComponentsObject) {}
+export class RuntimeVersionString implements IRuntimeVersionString {
+  constructor(readonly value: VersionString) {}
 
   get major() {
     return this.value.major;
@@ -150,25 +44,24 @@ export class RuntimeVersionString {
   }
 
   get buildString() {
-    if (exists(this.buildNr)) {
-      if (exists(this.buildMeta)) {
-        return this.buildNr + '.' + this.buildMeta;
-      } else {
-        return this.buildNr;
-      }
-    } else {
+    if (this.buildNr == null) {
       return null;
+    }
+    if (this.buildMeta != null) {
+      return this.buildNr + '.' + this.buildMeta;
+    } else {
+      return this.buildNr;
     }
   }
 
-  modify(newValue: Partial<VersionStringComponentsObject>) {
+  modify(newValue: Partial<VersionString>): RuntimeVersionString {
     return new RuntimeVersionString({
       ...this.value,
       ...newValue
     });
   }
 
-  toJSON(): RuntimeVersionStringObject {
+  toJSON(): RuntimeVersionStringDef {
     const rawVersion = this.toString();
     return {
       version: rawVersion,
@@ -179,7 +72,7 @@ export class RuntimeVersionString {
     };
   }
 
-  toString() {
+  toString(): string {
     try {
       const majMinPat = this.value.major + '.' + this.value.minor + '.' + this.value.patch;
 
@@ -191,8 +84,8 @@ export class RuntimeVersionString {
         majMinPat +
           '-' +
           this.value.track +
-          (exists(this.value.branch) ? '.' + this.value.branch : '') +
-          (exists(this.value.buildNr) ? '+' + this.buildString : '')
+          (this.value.branch != null ? '.' + this.value.branch : '') +
+          (this.value.buildNr != null ? '+' + this.buildString : '')
       ).raw;
     } catch (e) {
       return '';
@@ -200,7 +93,7 @@ export class RuntimeVersionString {
   }
 
   static empty() {
-    return new RuntimeVersionString({ major: null, minor: null, patch: null, track: 'dev' });
+    return new RuntimeVersionString({ major: null, minor: null, patch: null, track: Track.DEV });
   }
 
   static isEmpty(runtimeVersion: RuntimeVersionString): boolean {
@@ -216,7 +109,7 @@ export class RuntimeVersionString {
     );
   }
 
-  static parseBuildString(buildString: string | string[]): BuildStringComponent {
+  static parseBuildString(buildString: string | string[]): BuildString {
     let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
     if (typeof buildString == 'string') {
       buildObject = buildString.split('.');
