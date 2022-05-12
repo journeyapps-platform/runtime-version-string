@@ -54,7 +54,7 @@ jobs:
             VERSION=0.0.0-dev.$(git rev-parse --short "$GITHUB_SHA")
             rm -rf .git
             echo "Publishing "$VERSION
-            lerna version $VERSION --no-private --exact --force-publish --no-push --no-git-tag-version --yes
+            pnpm version "${version}" --git-tag-version false
             pnpm publish --tag next --no-git-checks --access restricted
           if: ${{ github.ref != 'refs/heads/master' }}
 
