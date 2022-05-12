@@ -24,7 +24,7 @@ describe('RuntimeVersionString', () => {
       patch: null,
       branch: null,
       buildNr: null,
-      buildMeta: null,
+      buildMeta: null
     });
     expect(RuntimeVersionString.isEmpty(clearedC1)).toBe(true);
   });
@@ -88,27 +88,27 @@ describe('RuntimeVersionString', () => {
   it('should build parse string as expected', () => {
     expect(RuntimeVersionString.parseBuildString('12.abcdef1.2019-04-09')).toEqual({
       buildNr: '12',
-      buildMeta: 'abcdef1.2019-04-09',
+      buildMeta: 'abcdef1.2019-04-09'
     });
     expect(RuntimeVersionString.parseBuildString('12')).toEqual({
       buildNr: '12',
-      buildMeta: null,
+      buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString(['12'])).toEqual({
       buildNr: '12',
-      buildMeta: null,
+      buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString('')).toEqual({
       buildNr: null,
-      buildMeta: null,
+      buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString([''])).toEqual({
       buildNr: null,
-      buildMeta: null,
+      buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString(['12', 'abcdef1', '2019-04-09'])).toEqual({
       buildNr: '12',
-      buildMeta: 'abcdef1.2019-04-09',
+      buildMeta: 'abcdef1.2019-04-09'
     });
 
     expect(RuntimeVersionString.isEmpty(RuntimeVersionString.empty())).toBe(true);

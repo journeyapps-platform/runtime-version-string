@@ -33,7 +33,7 @@ export function parse(value: string) {
     track: actualTrack,
     buildNr,
     branch: finalBranch,
-    buildMeta,
+    buildMeta
   });
 
   return new RuntimeVersionString({
@@ -43,6 +43,6 @@ export function parse(value: string) {
     track: actualTrack,
     buildNr,
     buildMeta,
-    branch: finalBranch,
+    branch: finalBranch
   });
 }

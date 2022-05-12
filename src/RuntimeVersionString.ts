@@ -5,7 +5,7 @@ import {
   IRuntimeVersionString,
   RuntimeVersionStringDef,
   Track,
-  VersionString,
+  VersionString
 } from './RuntimeVersionDefinition';
 
 export class RuntimeVersionString implements IRuntimeVersionString {
@@ -57,7 +57,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
   modify(newValue: Partial<VersionString>): RuntimeVersionString {
     return new RuntimeVersionString({
       ...this.value,
-      ...newValue,
+      ...newValue
     });
   }
 
@@ -68,7 +68,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
       track: this.value.track,
       buildNr: this.value.buildNr,
       buildMeta: this.value.buildMeta || null,
-      branch: this.value.branch || null,
+      branch: this.value.branch || null
     };
   }
 

@@ -3,7 +3,7 @@ export enum Track {
   ALPHA = 'alpha',
   BETA = 'beta',
   RC = 'rc',
-  STABLE = 'stable',
+  STABLE = 'stable'
 }
 
 export const KNOWN_TRACKS: Track[] = Object.values(Track);
@@ -14,7 +14,7 @@ export enum ErrorCodes {
   NO_BUILD_NR_ON_STABLE = 'NO_BUILD_NR_ON_STABLE',
   BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK = 'BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK',
   BUILD_NR_INVALID = 'BUILD_NR_INVALID',
-  BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY',
+  BRANCHES_ON_DEV_TRACK_ONLY = 'BRANCHES_ON_DEV_TRACK_ONLY'
 }
 
 export interface VersionString {
