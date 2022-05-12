@@ -9,9 +9,13 @@ The most likely use case is the `parse` function that this library ships which e
 
 ## Development
 
-For the best development experience, write tests first, open a terminal in the project root and run `yarn jest --watch`.
+For the best development experience, write tests first, open a terminal in the project root and run `pnpm jest --watch`.
 
 ## Deployment
+
+To deploy a dev version of this package, use: `pnpm deploy`. This will trigger a GitHub action.
+
+Production builds will be automatically build and published when merging to master.
 
 
 ## Other Example Use Cases
