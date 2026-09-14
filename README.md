@@ -37,7 +37,7 @@ candidate.toJSON();
 // }
 ```
 
-Version components (`major`, `minor`, and `patch`) are numbers. Build numbers are also numbers when present; `buildString` remains a string. `modify()` and the constructor do not validate track rules; use `parse()` to validate external input.
+Version components (`major`, `minor`, and `patch`) are numbers. Build numbers are also numbers when present; `buildString` remains a string. The constructor accepts invalid versions without validating. Call `version.validate()` explicitly when constructing directly. `parse()` and `modify()` call `validate()` before returning, checking numeric components, track rules, branches, and build metadata. Invalid values throw `RuntimeVersionStringException`. Instances hold a frozen copy of their input; use `modify()` to create an updated version.
 
 Represent an absent version with `RuntimeVersionString | null` and check `version == null` before accessing it. The `empty()` and `isEmpty()` helpers have been removed; `0.0.0` is a complete version.
 
@@ -61,7 +61,7 @@ The parser also accepts bundled development versions such as `4.58.6-dev.3dfa726
 
 ## Validation errors
 
-`parse()` and `RuntimeVersionString.parseBuildString()` throw `RuntimeVersionStringException` on validation failures. Its `code` property is an `ErrorCodes` value; its message also retains the code prefix for readability:
+`parse()`, `RuntimeVersionString.parseBuildString()`, `validate()`, and `modify()` throw `RuntimeVersionStringException` on validation failures. Its `code` property is an `ErrorCodes` value; its message also retains the code prefix for readability:
 
 ```ts
 import { ErrorCodes, parse, RuntimeVersionStringException } from '@ja-platform/runtime-version-string';

@@ -11,3 +11,5 @@ Change `major`, `minor`, `patch`, and `buildNr` from strings to numbers in parse
 Remove `RuntimeVersionString.empty()` and `RuntimeVersionString.isEmpty()`. Represent absent versions directly as `RuntimeVersionString | null` and use `version == null` to check for absence. Replace clearing individual components with an optional version value, and guard it before calling instance methods.
 
 Throw the exported `RuntimeVersionStringException` for parsing and validation failures. Use `instanceof RuntimeVersionStringException` and its typed `code` property (`ErrorCodes`) to handle failures without inspecting message text.
+
+Expose a public `validate()` method. Direct construction permits invalid versions; call `validate()` explicitly when needed. `parse()` and `modify()` validate before returning. Invalid numeric components, track combinations, branches, and metadata now throw `RuntimeVersionStringException`. Instances retain a frozen copy of their input so input mutations cannot change the instance.

@@ -1,9 +1,52 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { ErrorCodes, parse, RuntimeVersionString, RuntimeVersionStringException, Track } from '../src';
-import { throwIfChecksFail } from '../src/utils';
+import { ErrorCodes, parse, RuntimeVersionString, RuntimeVersionStringException, Track, VersionString } from '../src';
+
+const invalidChanges: { name: string; changes: Partial<VersionString>; code: ErrorCodes }[] = [
+  { name: 'negative major', changes: { major: -1 }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'fractional minor', changes: { minor: 1.5 }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'NaN patch', changes: { patch: NaN }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'infinite major', changes: { major: Infinity }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'unsafe patch', changes: { patch: Number.MAX_SAFE_INTEGER + 1 }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'stable with build number', changes: { track: Track.STABLE }, code: ErrorCodes.NO_BUILD_NR_ON_STABLE },
+  {
+    name: 'beta without build number',
+    changes: { buildNr: null },
+    code: ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK
+  },
+  { name: 'branch on beta', changes: { branch: 'feature' }, code: ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY },
+  { name: 'fractional build number', changes: { buildNr: 1.5 }, code: ErrorCodes.BUILD_NR_INVALID },
+  { name: 'negative build number', changes: { buildNr: -1 }, code: ErrorCodes.BUILD_NR_INVALID },
+  { name: 'malformed dev branch', changes: { track: Track.DEV, branch: 'bad branch' }, code: ErrorCodes.INVALID_INPUT },
+  { name: 'malformed metadata', changes: { buildMeta: 'bad..metadata' }, code: ErrorCodes.INVALID_INPUT },
+  {
+    name: 'stable with metadata',
+    changes: { track: Track.STABLE, buildNr: null, buildMeta: 'commit' },
+    code: ErrorCodes.INVALID_INPUT
+  }
+];
 
 describe('RuntimeVersionStringException', () => {
   it.each([
+    ...invalidChanges.flatMap(({ name, changes, code }) => [
+      {
+        name: `validate: ${name}`,
+        test: () =>
+          new RuntimeVersionString({
+            major: 1,
+            minor: 2,
+            patch: 3,
+            track: Track.BETA,
+            buildNr: 1,
+            ...changes
+          }).validate(),
+        code
+      },
+      {
+        name: `modify: ${name}`,
+        test: () => parse('1.2.3-beta+1').modify(changes),
+        code
+      }
+    ]),
     {
       name: 'invalid input',
       test: () => parse('invalid'),
@@ -77,11 +120,6 @@ describe('RuntimeVersionStringException', () => {
     {
       name: 'whitespace in a build number',
       test: () => RuntimeVersionString.parseBuildString(' 1'),
-      code: ErrorCodes.BUILD_NR_INVALID
-    },
-    {
-      name: 'numeric build validation',
-      test: () => throwIfChecksFail({ track: Track.BETA, buildNr: -1 }),
       code: ErrorCodes.BUILD_NR_INVALID
     }
   ])('exposes the exception type and code for $name', ({ test, code }) => {

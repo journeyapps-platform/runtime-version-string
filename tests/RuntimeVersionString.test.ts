@@ -40,9 +40,33 @@ describe('RuntimeVersionString', () => {
     });
   });
 
-  it('serializes invalid numeric versions as an empty string', () => {
-    expect(parse('1.2.3').modify({ major: NaN }).toString()).toBe('');
-    expect(parse('1.2.3-beta+1').modify({ major: NaN }).toString()).toBe('');
+  it('allows construction before validation and can modify an invalid version into a valid one', () => {
+    const version = new RuntimeVersionString({ major: 1, minor: 2, patch: 3, track: Track.BETA });
+
+    expect(version.buildNr).toBeUndefined();
+    const updated = version.modify({ buildNr: 1 });
+    expect(updated.toString()).toBe('1.2.3-beta+1');
+    expect(() => updated.validate()).not.toThrow();
+    expect(version.buildNr).toBeUndefined();
+  });
+
+  it('validates track transitions without changing the original version', () => {
+    const version = parse('1.2.3-dev.feature+12.commit');
+    const candidate = version.modify({ track: Track.RC, branch: null });
+    const stable = candidate.modify({ track: Track.STABLE, buildNr: null, buildMeta: null });
+
+    expect(candidate.toString()).toBe('1.2.3-rc+12.commit');
+    expect(stable.toString()).toBe('1.2.3');
+    expect(version.toString()).toBe('1.2.3-dev.feature+12.commit');
+  });
+
+  it('copies and freezes the constructor input', () => {
+    const input = { major: 1, minor: 2, patch: 3, track: Track.STABLE };
+    const version = new RuntimeVersionString(input);
+    input.major = NaN;
+
+    expect(version.toString()).toBe('1.2.3');
+    expect(Object.isFrozen(version.value)).toBe(true);
   });
 
   it('should parse BETA as expected', () => {

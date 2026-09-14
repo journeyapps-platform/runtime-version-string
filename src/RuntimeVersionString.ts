@@ -1,16 +1,59 @@
 import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 import * as semver from 'semver';
+import { isValidBranch, isValidBuildMetadata, parseBuildString, validateBuildNumber } from './utils';
 import {
   BuildString,
   ErrorCodes,
   IRuntimeVersionString,
+  KNOWN_TRACKS,
   RuntimeVersionStringDef,
   Track,
   VersionString
 } from './RuntimeVersionDefinition';
 
 export class RuntimeVersionString implements IRuntimeVersionString {
-  constructor(readonly value: VersionString) {}
+  readonly value: Readonly<VersionString>;
+
+  constructor(value: VersionString) {
+    this.value = Object.freeze({ ...value });
+  }
+
+  /**
+   * Validate this version, throwing RuntimeVersionStringException on failure.
+   */
+  validate(): void {
+    if (![this.major, this.minor, this.patch].every((component) => Number.isSafeInteger(component) && component >= 0)) {
+      throw new RuntimeVersionStringException(
+        ErrorCodes.INVALID_INPUT,
+        'Version components must be non-negative safe integers'
+      );
+    }
+    if (!KNOWN_TRACKS.includes(this.track)) {
+      throw new RuntimeVersionStringException(ErrorCodes.NOT_RECOGNISED_TRACK, 'Unknown release track');
+    }
+    if (this.track === Track.STABLE && this.buildNr != null) {
+      throw new RuntimeVersionStringException(
+        ErrorCodes.NO_BUILD_NR_ON_STABLE,
+        'Stable releases cannot have a build number'
+      );
+    }
+    if (this.track !== Track.STABLE && this.buildNr == null) {
+      throw new RuntimeVersionStringException(
+        ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK,
+        'Non-stable releases require a build number'
+      );
+    }
+    if (this.track !== Track.DEV && this.branch != null) {
+      throw new RuntimeVersionStringException(
+        ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY,
+        'Branches are only supported on the dev track'
+      );
+    }
+    validateBuildNumber(this.buildNr);
+    if (!isValidBranch(this.branch) || !isValidBuildMetadata(this.buildMeta, this.buildNr) || this.toString() === '') {
+      throw new RuntimeVersionStringException(ErrorCodes.INVALID_INPUT, 'Invalid version branch or build metadata');
+    }
+  }
 
   get major() {
     return this.value.major;
@@ -56,10 +99,12 @@ export class RuntimeVersionString implements IRuntimeVersionString {
   }
 
   modify(newValue: Partial<VersionString>): RuntimeVersionString {
-    return new RuntimeVersionString({
+    const version = new RuntimeVersionString({
       ...this.value,
       ...newValue
     });
+    version.validate();
+    return version;
   }
 
   toJSON(): RuntimeVersionStringDef {
@@ -96,16 +141,6 @@ export class RuntimeVersionString implements IRuntimeVersionString {
   }
 
   static parseBuildString(buildString: string | string[]): BuildString {
-    let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
-    if (typeof buildString == 'string') {
-      buildObject = buildString.split('.');
-    }
-    const rawBuildNr = buildObject.shift();
-    const buildNr = rawBuildNr === '' ? null : rawBuildNr == null ? undefined : Number(rawBuildNr);
-    if (rawBuildNr != null && rawBuildNr !== '' && (!/^[0-9]+$/.test(rawBuildNr) || !Number.isSafeInteger(buildNr))) {
-      throw new RuntimeVersionStringException(ErrorCodes.BUILD_NR_INVALID);
-    }
-    const buildMeta = buildObject.length > 0 ? buildObject.join('.') : null;
-    return { buildNr, buildMeta };
+    return parseBuildString(buildString);
   }
 }
