@@ -1,4 +1,5 @@
-import { RuntimeVersionString, parse, ErrorCodes } from '../src';
+import { describe, expect, it } from 'vitest';
+import { RuntimeVersionString, parse, ErrorCodes, Track } from '../src';
 
 describe('RuntimeVersionString', () => {
   it('should parse BETA as expected', () => {
@@ -10,7 +11,7 @@ describe('RuntimeVersionString', () => {
     expect(c1.major).toBe('1');
     expect(c1.minor).toBe('2');
     expect(c1.patch).toBe('3');
-    expect(c1.track).toBe('beta');
+    expect(c1.track).toBe(Track.BETA);
     expect(c1.buildNr).toBe('1');
     expect(c1.buildMeta).toBeNull();
     expect(c1.branch).toBeNull();
@@ -39,7 +40,7 @@ describe('RuntimeVersionString', () => {
     expect(c2.major).toBe('1');
     expect(c2.minor).toBe('2');
     expect(c2.patch).toBe('3');
-    expect(c2.track).toBe('dev');
+    expect(c2.track).toBe(Track.DEV);
     expect(c2.branch).toBe('something-else-here');
     expect(c2.buildNr).toBe('12');
     expect(c2.buildString).toBe('12');
@@ -64,7 +65,7 @@ describe('RuntimeVersionString', () => {
     expect(c3.major).toBe('1');
     expect(c3.minor).toBe('3');
     expect(c3.patch).toBe('3');
-    expect(c3.track).toBe('rc');
+    expect(c3.track).toBe(Track.RC);
     expect(c3.buildNr).toBe('1');
     expect(c3.buildString).toBe('1');
     expect(c3.toString()).toBe(third);
@@ -81,7 +82,7 @@ describe('RuntimeVersionString', () => {
     expect(c5.major).toBe('1');
     expect(c5.minor).toBe('2');
     expect(c5.patch).toBe('3');
-    expect(c5.track).toBe('alpha');
+    expect(c5.track).toBe(Track.ALPHA);
     expect(c5.toString()).toBe(expected);
   });
 
@@ -134,11 +135,11 @@ describe('RuntimeVersionString', () => {
   });
 
   it('should fallback to a value of `stable` when track is not provided', () => {
-    expect(parse('1.2.3').track).toBe('stable');
+    expect(parse('1.2.3').track).toBe(Track.STABLE);
     expect(parse('1.2.3').base).toBe('1.2.3');
-    expect(parse('1.2.3-stable').track).toBe('stable');
-    expect(parse('1.2.3-beta+1').track).toBe('beta');
-    expect(parse('1.2.3-alpha+1').track).toBe('alpha');
+    expect(parse('1.2.3-stable').track).toBe(Track.STABLE);
+    expect(parse('1.2.3-beta+1').track).toBe(Track.BETA);
+    expect(parse('1.2.3-alpha+1').track).toBe(Track.ALPHA);
   });
 
   it('should stringifies versions as expected', () => {
@@ -164,6 +165,6 @@ describe('RuntimeVersionString', () => {
     expect(parsed.major).toBe('4');
     expect(parsed.minor).toBe('58');
     expect(parsed.patch).toBe('6');
-    expect(parsed.track).toBe('dev');
+    expect(parsed.track).toBe(Track.DEV);
   });
 });

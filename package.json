@@ -1,31 +1,45 @@
 {
-  "name": "@journeyapps/runtime-version-string",
+  "name": "@ja-platform/runtime-version-string",
   "version": "1.1.0",
   "author": "JourneyApps",
-  "main": "./lib/index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "build": "tsc -b",
-    "clean": "rm -rf ./dist && tsc -b --clean",
-    "test": "pnpm jest",
-    "format": "journey-formatter format",
-    "deploy": "journey-deploy trigger"
+    "clean": "tsc -b --clean && rm -rf ./dist",
+    "test": "vitest run",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
+    "test:watch": "vitest",
+    "changeset": "changeset",
+    "release": "pnpm build && pnpm changeset publish",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx}\""
   },
   "dependencies": {
     "semver": "7.3.7"
   },
   "devDependencies": {
-    "@babel/core": "7.17.10",
-    "@journeyapps-platform/deploy-cli": "^4.2.8",
-    "@journeyapps-platform/formatter-cli": "^3.1.4",
-    "@types/jest": "27.5.1",
-    "@types/node": "17.0.32",
+    "@types/node": "24.13.4",
     "@types/semver": "7.3.9",
-    "babel-core": "6.26.3",
-    "babel-jest": "^28.1.0",
-    "jest": "28.1.0",
-    "prettier": "^2.6.2",
-    "ts-jest": "28.0.2",
-    "ts-node": "^10.7.0",
-    "typescript": "4.6.4"
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0",
+    "@changesets/cli": "^3.0.2"
+  },
+  "description": "Parse, validate and serialize Journey Runtime version strings.",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=12 <13"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/journeyapps-platform/runtime-version-string.git"
   }
 }

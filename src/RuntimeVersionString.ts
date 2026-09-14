@@ -76,7 +76,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     try {
       const majMinPat = this.value.major + '.' + this.value.minor + '.' + this.value.patch;
 
-      if (this.track === 'stable') {
+      if (this.track === Track.STABLE) {
         return semver.parse(majMinPat).raw;
       }
 
