@@ -14,15 +14,15 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx}\""
   },
   "dependencies": {
-    "semver": "7.3.7"
+    "semver": "7.8.5"
   },
   "devDependencies": {
-    "@types/node": "24.13.4",
-    "@types/semver": "7.3.9",
+    "@types/node": "26.5.1",
+    "@types/semver": "7.8.0",
     "prettier": "3.9.6",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "5.0.0",
-    "@changesets/cli": "^3.0.2"
+    "@changesets/cli": "^3.0.3"
   },
   "description": "Parse, validate and serialize Journey Runtime version strings.",
   "types": "./dist/index.d.ts",

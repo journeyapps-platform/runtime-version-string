@@ -22,7 +22,7 @@ export function throwIfChecksFail(value: SomeRuntimeValues) {
   });
 }
 
-const exists = (value: any) => value != null;
+const exists = <T>(value: T): value is NonNullable<T> => value != null;
 
 /* prettier-ignore */
 export const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [

@@ -2,6 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { RuntimeVersionString, parse, ErrorCodes, Track } from '../src';
 
 describe('RuntimeVersionString', () => {
+  it('preserves absent fields when serializing a stable version', () => {
+    const version = parse('1.2.3');
+
+    expect(version.buildString).toBeNull();
+    expect(version.toJSON()).toEqual({
+      version: '1.2.3',
+      track: Track.STABLE,
+      buildNr: undefined,
+      buildMeta: null,
+      branch: null
+    });
+  });
+
+  it('serializes empty or invalid versions as an empty string', () => {
+    expect(RuntimeVersionString.empty().toString()).toBe('');
+    expect(parse('1.2.3').modify({ major: 'invalid' }).toString()).toBe('');
+    expect(parse('1.2.3-beta+1').modify({ major: 'invalid' }).toString()).toBe('');
+  });
+
   it('should parse BETA as expected', () => {
     const first = '1.2.3-beta+1';
     const c1 = parse(first);

@@ -77,16 +77,18 @@ export class RuntimeVersionString implements IRuntimeVersionString {
       const majMinPat = this.value.major + '.' + this.value.minor + '.' + this.value.patch;
 
       if (this.track === Track.STABLE) {
-        return semver.parse(majMinPat).raw;
+        return semver.parse(majMinPat)?.raw ?? '';
       }
 
-      return semver.parse(
-        majMinPat +
-          '-' +
-          this.value.track +
-          (this.value.branch != null ? '.' + this.value.branch : '') +
-          (this.value.buildNr != null ? '+' + this.buildString : '')
-      ).raw;
+      return (
+        semver.parse(
+          majMinPat +
+            '-' +
+            this.value.track +
+            (this.value.branch != null ? '.' + this.value.branch : '') +
+            (this.value.buildNr != null ? '+' + this.buildString : '')
+        )?.raw ?? ''
+      );
     } catch (e) {
       return '';
     }
@@ -96,7 +98,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     return new RuntimeVersionString({ major: null, minor: null, patch: null, track: Track.DEV });
   }
 
-  static isEmpty(runtimeVersion: RuntimeVersionString): boolean {
+  static isEmpty(runtimeVersion: RuntimeVersionString | null | undefined): boolean {
     if (!runtimeVersion) {
       throw new Error(ErrorCodes.INVALID_INPUT);
     }
@@ -114,7 +116,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     if (typeof buildString == 'string') {
       buildObject = buildString.split('.');
     }
-    let buildNr = buildObject.shift(); // Removes first value
+    let buildNr: string | null | undefined = buildObject.shift(); // Removes first value
     if (buildNr == '') {
       buildNr = null;
     }

@@ -9,11 +9,11 @@ import { isDevBundledRuntime, throwIfChecksFail } from './utils';
  * unsuccessful.
  */
 export function parse(value: string) {
-  if (!value || !semver.valid(value)) {
+  const parsedSemver = semver.parse(value);
+  if (!parsedSemver) {
     throw new Error(`${ErrorCodes.INVALID_INPUT}. Invalid string provided ${value}`);
   }
 
-  const parsedSemver = semver.parse(value);
   const { major, minor, patch, build } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
   let { buildNr, buildMeta } = RuntimeVersionString.parseBuildString([...build]);
