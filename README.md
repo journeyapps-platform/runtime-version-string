@@ -39,7 +39,7 @@ candidate.toJSON();
 
 Version components (`major`, `minor`, and `patch`) are numbers. Build numbers are also numbers when present; `buildString` remains a string. `modify()` and the constructor do not validate track rules; use `parse()` to validate external input.
 
-`isEmpty()` returns `true` for `null` and `undefined`, and `false` for version instances, including `0.0.0`.
+Represent an absent version with `RuntimeVersionString | null` and check `version == null` before accessing it. The `empty()` and `isEmpty()` helpers have been removed; `0.0.0` is a complete version.
 
 ## Version formats
 

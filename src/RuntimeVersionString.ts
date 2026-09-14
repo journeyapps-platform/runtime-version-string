@@ -95,17 +95,6 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     }
   }
 
-  /**
-   * Represent an absent version without creating an incomplete version instance.
-   */
-  static empty(): null {
-    return null;
-  }
-
-  static isEmpty(runtimeVersion: RuntimeVersionString | null | undefined): runtimeVersion is null | undefined {
-    return runtimeVersion == null;
-  }
-
   static parseBuildString(buildString: string | string[]): BuildString {
     let buildObject = typeof buildString == 'string' ? buildString.split('.') : (buildString as string[]);
     if (typeof buildString == 'string') {

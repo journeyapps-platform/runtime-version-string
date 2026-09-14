@@ -27,27 +27,6 @@ describe('RuntimeVersionString', () => {
     expect(parse('1.2.3-beta+9007199254740991').buildNr).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  it('represents absence separately and narrows it before accessing a version', () => {
-    const empty = RuntimeVersionString.empty();
-    expectTypeOf(empty).toEqualTypeOf<null>();
-    expect(empty).toBeNull();
-    expect(RuntimeVersionString.isEmpty(empty)).toBe(true);
-    expect(RuntimeVersionString.isEmpty(undefined)).toBe(true);
-    expect(RuntimeVersionString.isEmpty(parse('0.0.0'))).toBe(false);
-
-    const getMajor = (version: RuntimeVersionString | null | undefined) => {
-      if (RuntimeVersionString.isEmpty(version)) {
-        expectTypeOf(version).toEqualTypeOf<null | undefined>();
-        return null;
-      }
-      expectTypeOf(version).toEqualTypeOf<RuntimeVersionString>();
-      return version.major;
-    };
-
-    expect(getMajor(empty)).toBeNull();
-    expect(getMajor(parse('1.2.3'))).toBe(1);
-  });
-
   it('preserves absent fields when serializing a stable version', () => {
     const version = parse('1.2.3');
 
@@ -81,8 +60,6 @@ describe('RuntimeVersionString', () => {
     expect(c1.branch).toBeNull();
     expect(c1.buildString).toBe('1');
     expect(c1.toString()).toBe(first);
-
-    expect(RuntimeVersionString.isEmpty(c1)).toBe(false);
   });
 
   it('should parse DEV as expected', () => {
@@ -100,7 +77,6 @@ describe('RuntimeVersionString', () => {
     expect(c2.buildNr).toBe(12);
     expect(c2.buildString).toBe('12');
     expect(c2.toString()).toBe(second);
-    expect(RuntimeVersionString.isEmpty(c2)).toBe(false);
 
     const c4 = parse(fourth);
 
@@ -109,7 +85,6 @@ describe('RuntimeVersionString', () => {
     expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
     expect(c4.buildString).toBe('12.abcdef1.2019-04-09');
     expect(c4.toString()).toBe(fourth);
-    expect(RuntimeVersionString.isEmpty(c4)).toBe(false);
   });
 
   it('should parse RC as expected', () => {
@@ -124,7 +99,6 @@ describe('RuntimeVersionString', () => {
     expect(c3.buildNr).toBe(1);
     expect(c3.buildString).toBe('1');
     expect(c3.toString()).toBe(third);
-    expect(RuntimeVersionString.isEmpty(c3)).toBe(false);
   });
 
   it('should parse ALPHA as expected', () => {
