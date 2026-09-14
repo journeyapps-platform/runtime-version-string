@@ -18,7 +18,7 @@ const version = parse('1.2.3-dev.feature-name+12.abcdef1');
 version.base;        // '1.2.3'
 version.track;       // Track.DEV
 version.branch;      // 'feature-name'
-version.buildNr;     // '12'
+version.buildNr;     // 12
 version.buildMeta;   // 'abcdef1'
 version.buildString; // '12.abcdef1'
 version.toString();  // '1.2.3-dev.feature-name+12.abcdef1'
@@ -31,13 +31,15 @@ candidate.toJSON();
 // {
 //   version: '1.2.3-rc+12.abcdef1',
 //   track: Track.RC,
-//   buildNr: '12',
+//   buildNr: 12,
 //   buildMeta: 'abcdef1',
 //   branch: null
 // }
 ```
 
-Version components and build numbers are strings. `modify()` and the constructor do not validate track rules; use `parse()` to validate external input.
+Version components (`major`, `minor`, and `patch`) are numbers. Build numbers are also numbers when present; `buildString` remains a string. `modify()` and the constructor do not validate track rules; use `parse()` to validate external input.
+
+`isEmpty()` returns `true` for `null` and `undefined`, and `false` for version instances, including `0.0.0`.
 
 ## Version formats
 
@@ -59,15 +61,15 @@ The parser also accepts bundled development versions such as `4.58.6-dev.3dfa726
 
 ## Validation errors
 
-`parse()` throws an `Error` whose message starts with an exported `ErrorCodes` value:
+`parse()` and `RuntimeVersionString.parseBuildString()` throw `RuntimeVersionStringException` on validation failures. Its `code` property is an `ErrorCodes` value; its message also retains the code prefix for readability:
 
 ```ts
-import { ErrorCodes, parse } from '@ja-platform/runtime-version-string';
+import { ErrorCodes, parse, RuntimeVersionStringException } from '@ja-platform/runtime-version-string';
 
 try {
   parse('1.2.3-rc');
 } catch (error) {
-  if (error instanceof Error && error.message.startsWith(ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK)) {
+  if (error instanceof RuntimeVersionStringException && error.code === ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK) {
     // Ask for a numeric build number, e.g. '1.2.3-rc+1'.
   } else {
     throw error;
@@ -82,31 +84,15 @@ See [the error definitions](./src/RuntimeVersionDefinition.ts) and [the tests](.
 Use Node.js 24 LTS (pinned in `.nvmrc`) and pnpm 12.4.1 (pinned in `package.json`). CI builds and tests on Node.js 22 and 24.
 
 ```sh
-nvm install
 nvm use
-npm install --global pnpm@12.4.1
 pnpm install
 pnpm build
 pnpm test
 ```
 
-- `pnpm test:watch`: run Vitest in watch mode.
-- `pnpm build`: compile CommonJS JavaScript and TypeScript declarations into `dist/`.
-- `pnpm clean`: remove compiled output and TypeScript build state.
-- `pnpm format`: format TypeScript and JavaScript files with Prettier.
-- `pnpm format:check`: check formatting without modifying files (also runs in CI).
-
-Commit `pnpm-lock.yaml` when changing dependencies. The published package includes `dist/`, the README and package metadata.
-
 ## Publishing
 
 Releases use Changesets and the [Release workflow](https://github.com/journeyapps-platform/runtime-version-string/actions/workflows/release.yml).
-
-### Setup
-
-The initial publish under `@ja-platform` requires an `NPM_TOKEN` secret in the `npm` GitHub environment with permission to publish this package. Enable **Allow GitHub Actions to create and approve pull requests** in the repository's Actions settings.
-
-After the package has been published once, configure npm trusted publishing for this repository, `.github/workflows/release.yml`, and the `npm` environment. Then remove the `NODE_AUTH_TOKEN` entries from the release workflow and the `NPM_TOKEN` secret. The workflow requests an OIDC token and publishes with provenance. Packages are published with public access, matching the common repository.
 
 ### Production release
 

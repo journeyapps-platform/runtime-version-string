@@ -1,15 +1,17 @@
+import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 import { ErrorCodes, KNOWN_TRACKS, SomeRuntimeValues, Track } from './RuntimeVersionDefinition';
 
-export const isValidBuildNr = (string: string) => /^[0-9]+$/.test(string);
+export const isValidBuildNr = (value: number) => Number.isSafeInteger(value) && value >= 0;
 
 export type Predicate<T> = (v: T) => boolean;
-export type PredicateCodePair = [Predicate<SomeRuntimeValues>, string];
+export type PredicateCodePair = [Predicate<SomeRuntimeValues>, ErrorCodes];
 
-export function throwErrorIf(predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) {
-  const [predicate, message] = predicateMessagePair;
+export function throwErrorIf(predicateCodePair: PredicateCodePair, value: SomeRuntimeValues) {
+  const [predicate, code] = predicateCodePair;
   if (predicate(value)) {
-    throw new Error(
-      `${message}. "${JSON.stringify(
+    throw new RuntimeVersionStringException(
+      code,
+      `"${JSON.stringify(
         value
       )}" failed checks. Please see https://github.com/journeyapps-platform/runtime-version-string for a list of runtime version string requirements.`
     );
@@ -25,7 +27,7 @@ export function throwIfChecksFail(value: SomeRuntimeValues) {
 const exists = <T>(value: T): value is NonNullable<T> => value != null;
 
 /* prettier-ignore */
-export const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
+export const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, ErrorCodes][] = [
     [v => !KNOWN_TRACKS.find(track => track === v.track),       ErrorCodes.NOT_RECOGNISED_TRACK],
     [v => v.track === Track.STABLE && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
     [v => v.track !== Track.STABLE && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],

@@ -18,11 +18,11 @@ export enum ErrorCodes {
 }
 
 export interface VersionString {
-  major: string | null;
-  minor: string | null;
-  patch: string | null;
+  major: number;
+  minor: number;
+  patch: number;
   track: Track;
-  buildNr?: string | null;
+  buildNr?: number | null;
   buildMeta?: string | null;
   branch?: string | null;
 }
@@ -37,12 +37,12 @@ export type SomeRuntimeValues = Partial<IRuntimeVersionString>;
 export interface RuntimeVersionStringDef {
   version: string;
   track: Track;
-  buildNr: string | null | undefined;
+  buildNr: number | null | undefined;
   buildMeta: string | null;
   branch: string | null;
 }
 
 export interface BuildString {
-  buildNr?: string | null;
+  buildNr?: number | null;
   buildMeta?: string | null;
 }

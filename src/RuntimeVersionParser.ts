@@ -1,5 +1,6 @@
+import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 import * as semver from 'semver';
-import { ErrorCodes, Track } from './RuntimeVersionDefinition';
+import { ErrorCodes, KNOWN_TRACKS, Track } from './RuntimeVersionDefinition';
 import { RuntimeVersionString } from './RuntimeVersionString';
 import { isDevBundledRuntime, throwIfChecksFail } from './utils';
 
@@ -11,22 +12,25 @@ import { isDevBundledRuntime, throwIfChecksFail } from './utils';
 export function parse(value: string) {
   const parsedSemver = semver.parse(value);
   if (!parsedSemver) {
-    throw new Error(`${ErrorCodes.INVALID_INPUT}. Invalid string provided ${value}`);
+    throw new RuntimeVersionStringException(ErrorCodes.INVALID_INPUT, `Invalid string provided ${value}`);
   }
 
   const { major, minor, patch, build } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
+  const actualTrack = (track != null ? `${track}` : Track.STABLE) as Track;
+  if (!KNOWN_TRACKS.includes(actualTrack)) {
+    throw new RuntimeVersionStringException(ErrorCodes.NOT_RECOGNISED_TRACK);
+  }
   let { buildNr, buildMeta } = RuntimeVersionString.parseBuildString([...build]);
   if (isDevBundledRuntime(value)) {
     // We don't have to reconstruct devBundledRuntimes, but we don't want the parsing to fail,
-    // so we put a dummy buildNr of "0"
-    buildNr = '0';
+    // so we put a dummy buildNr of 0
+    buildNr = 0;
   }
-  const actualTrack = (track != null ? `${track}` : Track.STABLE) as Track;
   let finalBranch = branchName != null ? `${branchName}` : null;
 
   if (actualTrack == Track.ALPHA) {
-    buildNr = branchName != null ? `${branchName}` : '0';
+    buildNr = branchName != null ? RuntimeVersionString.parseBuildString([`${branchName}`]).buildNr : 0;
     finalBranch = null;
   }
   throwIfChecksFail({
@@ -37,9 +41,9 @@ export function parse(value: string) {
   });
 
   return new RuntimeVersionString({
-    major: `${major}`,
-    minor: `${minor}`,
-    patch: `${patch}`,
+    major,
+    minor,
+    patch,
     track: actualTrack,
     buildNr,
     buildMeta,

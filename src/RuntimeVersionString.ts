@@ -1,3 +1,4 @@
+import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 import * as semver from 'semver';
 import {
   BuildString,
@@ -50,7 +51,7 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     if (this.buildMeta != null) {
       return this.buildNr + '.' + this.buildMeta;
     } else {
-      return this.buildNr;
+      return `${this.buildNr}`;
     }
   }
 
@@ -94,21 +95,15 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     }
   }
 
-  static empty() {
-    return new RuntimeVersionString({ major: null, minor: null, patch: null, track: Track.DEV });
+  /**
+   * Represent an absent version without creating an incomplete version instance.
+   */
+  static empty(): null {
+    return null;
   }
 
-  static isEmpty(runtimeVersion: RuntimeVersionString | null | undefined): boolean {
-    if (!runtimeVersion) {
-      throw new Error(ErrorCodes.INVALID_INPUT);
-    }
-    return (
-      runtimeVersion.major == null &&
-      runtimeVersion.minor == null &&
-      runtimeVersion.patch == null &&
-      runtimeVersion.branch == null &&
-      runtimeVersion.buildString == null
-    );
+  static isEmpty(runtimeVersion: RuntimeVersionString | null | undefined): runtimeVersion is null | undefined {
+    return runtimeVersion == null;
   }
 
   static parseBuildString(buildString: string | string[]): BuildString {
@@ -116,9 +111,10 @@ export class RuntimeVersionString implements IRuntimeVersionString {
     if (typeof buildString == 'string') {
       buildObject = buildString.split('.');
     }
-    let buildNr: string | null | undefined = buildObject.shift(); // Removes first value
-    if (buildNr == '') {
-      buildNr = null;
+    const rawBuildNr = buildObject.shift();
+    const buildNr = rawBuildNr === '' ? null : rawBuildNr == null ? undefined : Number(rawBuildNr);
+    if (rawBuildNr != null && rawBuildNr !== '' && (!/^[0-9]+$/.test(rawBuildNr) || !Number.isSafeInteger(buildNr))) {
+      throw new RuntimeVersionStringException(ErrorCodes.BUILD_NR_INVALID);
     }
     const buildMeta = buildObject.length > 0 ? buildObject.join('.') : null;
     return { buildNr, buildMeta };
