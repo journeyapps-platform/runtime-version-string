@@ -1,48 +1,43 @@
+import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 import * as semver from 'semver';
 import { ErrorCodes, Track } from './RuntimeVersionDefinition';
 import { RuntimeVersionString } from './RuntimeVersionString';
-import { isDevBundledRuntime, throwIfChecksFail } from './utils';
+import { decodeBuildString, isDevBundledRuntime } from './utils';
 
 /**
- * This function takes a string and does some basic validation on it before passing
- * the components to be serialised into a Channel. Returns throws a pre-defined error code if parsing is
- * unsuccessful.
+ * Decode a SemVer string and normalize Journey-specific fields.
+ * Validate the resulting version before returning it.
  */
 export function parse(value: string) {
-  if (!value || !semver.valid(value)) {
-    throw new Error(`${ErrorCodes.INVALID_INPUT}. Invalid string provided ${value}`);
+  const parsedSemver = semver.parse(value);
+  if (!parsedSemver) {
+    throw new RuntimeVersionStringException(ErrorCodes.INVALID_INPUT, `Invalid string provided ${value}`);
   }
 
-  const parsedSemver = semver.parse(value);
   const { major, minor, patch, build } = parsedSemver;
   const [track, branchName] = parsedSemver.prerelease;
-  let { buildNr, buildMeta } = RuntimeVersionString.parseBuildString([...build]);
+  const actualTrack = (track != null ? `${track}` : Track.STABLE) as Track;
+  let { buildNr, buildMeta } = decodeBuildString(build);
   if (isDevBundledRuntime(value)) {
     // We don't have to reconstruct devBundledRuntimes, but we don't want the parsing to fail,
-    // so we put a dummy buildNr of "0"
-    buildNr = '0';
+    // so we put a dummy buildNr of 0
+    buildNr = 0;
   }
-  const actualTrack = (track != null ? `${track}` : Track.STABLE) as Track;
   let finalBranch = branchName != null ? `${branchName}` : null;
 
   if (actualTrack == Track.ALPHA) {
-    buildNr = branchName != null ? `${branchName}` : '0';
+    buildNr = branchName != null ? decodeBuildString([`${branchName}`]).buildNr : 0;
     finalBranch = null;
   }
-  throwIfChecksFail({
-    track: actualTrack,
-    buildNr,
-    branch: finalBranch,
-    buildMeta
-  });
-
-  return new RuntimeVersionString({
-    major: `${major}`,
-    minor: `${minor}`,
-    patch: `${patch}`,
+  const version = new RuntimeVersionString({
+    major,
+    minor,
+    patch,
     track: actualTrack,
     buildNr,
     buildMeta,
     branch: finalBranch
   });
+  version.validate();
+  return version;
 }

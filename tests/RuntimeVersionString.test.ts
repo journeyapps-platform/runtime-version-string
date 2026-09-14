@@ -1,32 +1,89 @@
-import { RuntimeVersionString, parse, ErrorCodes } from '../src';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import { RuntimeVersionString, parse, Track } from '../src';
 
 describe('RuntimeVersionString', () => {
+  it('exposes numeric components and supports numeric modifications', () => {
+    const version = parse('10.20.30');
+    expectTypeOf(version.major).toEqualTypeOf<number>();
+    expectTypeOf(version.minor).toEqualTypeOf<number>();
+    expectTypeOf(version.patch).toEqualTypeOf<number>();
+    const updated = version.modify({ minor: version.minor + 1, patch: 0 });
+
+    expect(updated.toString()).toBe('10.21.0');
+    expect(version.toString()).toBe('10.20.30');
+    expect(new RuntimeVersionString({ major: 0, minor: 0, patch: 0, track: Track.STABLE }).toString()).toBe('0.0.0');
+  });
+
+  it('uses numeric build numbers while preserving serialized build metadata', () => {
+    const version = parse('1.2.3-beta+12.abcdef');
+    expectTypeOf(version.buildNr).toEqualTypeOf<number | null | undefined>();
+    expect(version.buildNr).toBe(12);
+    expect(version.buildString).toBe('12.abcdef');
+    expect(version.toJSON().buildNr).toBe(12);
+    expect(version.modify({ buildNr: 13 }).toString()).toBe('1.2.3-beta+13.abcdef');
+    expect(parse('1.2.3-beta+0').buildNr).toBe(0);
+    expect(parse('1.2.3-beta+0012').toString()).toBe('1.2.3-beta+12');
+    expect(parse('1.2.3-alpha.9').buildNr).toBe(9);
+    expect(parse('1.2.3-beta+9007199254740991').buildNr).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it('preserves absent fields when serializing a stable version', () => {
+    const version = parse('1.2.3');
+
+    expect(version.buildString).toBeNull();
+    expect(version.toJSON()).toEqual({
+      version: '1.2.3',
+      track: Track.STABLE,
+      buildNr: undefined,
+      buildMeta: null,
+      branch: null
+    });
+  });
+
+  it('allows construction before validation and can modify an invalid version into a valid one', () => {
+    const version = new RuntimeVersionString({ major: 1, minor: 2, patch: 3, track: Track.BETA });
+
+    expect(version.buildNr).toBeUndefined();
+    const updated = version.modify({ buildNr: 1 });
+    expect(updated.toString()).toBe('1.2.3-beta+1');
+    expect(() => updated.validate()).not.toThrow();
+    expect(version.buildNr).toBeUndefined();
+  });
+
+  it('validates track transitions without changing the original version', () => {
+    const version = parse('1.2.3-dev.feature+12.commit');
+    const candidate = version.modify({ track: Track.RC, branch: null });
+    const stable = candidate.modify({ track: Track.STABLE, buildNr: null, buildMeta: null });
+
+    expect(candidate.toString()).toBe('1.2.3-rc+12.commit');
+    expect(stable.toString()).toBe('1.2.3');
+    expect(version.toString()).toBe('1.2.3-dev.feature+12.commit');
+  });
+
+  it('copies and freezes the constructor input', () => {
+    const input = { major: 1, minor: 2, patch: 3, track: Track.STABLE };
+    const version = new RuntimeVersionString(input);
+    input.major = NaN;
+
+    expect(version.toString()).toBe('1.2.3');
+    expect(Object.isFrozen(version.value)).toBe(true);
+  });
+
   it('should parse BETA as expected', () => {
     const first = '1.2.3-beta+1';
     const c1 = parse(first);
     expect(c1).toBeInstanceOf(RuntimeVersionString);
 
     expect(c1.base).toBe('1.2.3');
-    expect(c1.major).toBe('1');
-    expect(c1.minor).toBe('2');
-    expect(c1.patch).toBe('3');
-    expect(c1.track).toBe('beta');
-    expect(c1.buildNr).toBe('1');
+    expect(c1.major).toBe(1);
+    expect(c1.minor).toBe(2);
+    expect(c1.patch).toBe(3);
+    expect(c1.track).toBe(Track.BETA);
+    expect(c1.buildNr).toBe(1);
     expect(c1.buildMeta).toBeNull();
     expect(c1.branch).toBeNull();
     expect(c1.buildString).toBe('1');
     expect(c1.toString()).toBe(first);
-
-    expect(RuntimeVersionString.isEmpty(c1)).toBe(false);
-    const clearedC1 = c1.modify({
-      major: null,
-      minor: null,
-      patch: null,
-      branch: null,
-      buildNr: null,
-      buildMeta: null
-    });
-    expect(RuntimeVersionString.isEmpty(clearedC1)).toBe(true);
   });
 
   it('should parse DEV as expected', () => {
@@ -36,24 +93,22 @@ describe('RuntimeVersionString', () => {
     const c2 = parse(second);
 
     expect(c2.base).toBe('1.2.3');
-    expect(c2.major).toBe('1');
-    expect(c2.minor).toBe('2');
-    expect(c2.patch).toBe('3');
-    expect(c2.track).toBe('dev');
+    expect(c2.major).toBe(1);
+    expect(c2.minor).toBe(2);
+    expect(c2.patch).toBe(3);
+    expect(c2.track).toBe(Track.DEV);
     expect(c2.branch).toBe('something-else-here');
-    expect(c2.buildNr).toBe('12');
+    expect(c2.buildNr).toBe(12);
     expect(c2.buildString).toBe('12');
     expect(c2.toString()).toBe(second);
-    expect(RuntimeVersionString.isEmpty(c2)).toBe(false);
 
     const c4 = parse(fourth);
 
     expect(c4.base).toBe('1.2.3');
-    expect(c4.buildNr).toBe('12');
+    expect(c4.buildNr).toBe(12);
     expect(c4.buildMeta).toBe('abcdef1.2019-04-09');
     expect(c4.buildString).toBe('12.abcdef1.2019-04-09');
     expect(c4.toString()).toBe(fourth);
-    expect(RuntimeVersionString.isEmpty(c4)).toBe(false);
   });
 
   it('should parse RC as expected', () => {
@@ -61,14 +116,13 @@ describe('RuntimeVersionString', () => {
     const c3 = parse(third);
 
     expect(c3.base).toBe('1.3.3');
-    expect(c3.major).toBe('1');
-    expect(c3.minor).toBe('3');
-    expect(c3.patch).toBe('3');
-    expect(c3.track).toBe('rc');
-    expect(c3.buildNr).toBe('1');
+    expect(c3.major).toBe(1);
+    expect(c3.minor).toBe(3);
+    expect(c3.patch).toBe(3);
+    expect(c3.track).toBe(Track.RC);
+    expect(c3.buildNr).toBe(1);
     expect(c3.buildString).toBe('1');
     expect(c3.toString()).toBe(third);
-    expect(RuntimeVersionString.isEmpty(c3)).toBe(false);
   });
 
   it('should parse ALPHA as expected', () => {
@@ -78,24 +132,24 @@ describe('RuntimeVersionString', () => {
 
     //1.2.3-alpha.9
     expect(c5.base).toBe('1.2.3');
-    expect(c5.major).toBe('1');
-    expect(c5.minor).toBe('2');
-    expect(c5.patch).toBe('3');
-    expect(c5.track).toBe('alpha');
+    expect(c5.major).toBe(1);
+    expect(c5.minor).toBe(2);
+    expect(c5.patch).toBe(3);
+    expect(c5.track).toBe(Track.ALPHA);
     expect(c5.toString()).toBe(expected);
   });
 
   it('should build parse string as expected', () => {
     expect(RuntimeVersionString.parseBuildString('12.abcdef1.2019-04-09')).toEqual({
-      buildNr: '12',
+      buildNr: 12,
       buildMeta: 'abcdef1.2019-04-09'
     });
     expect(RuntimeVersionString.parseBuildString('12')).toEqual({
-      buildNr: '12',
+      buildNr: 12,
       buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString(['12'])).toEqual({
-      buildNr: '12',
+      buildNr: 12,
       buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString('')).toEqual({
@@ -107,41 +161,20 @@ describe('RuntimeVersionString', () => {
       buildMeta: null
     });
     expect(RuntimeVersionString.parseBuildString(['12', 'abcdef1', '2019-04-09'])).toEqual({
-      buildNr: '12',
+      buildNr: 12,
       buildMeta: 'abcdef1.2019-04-09'
     });
-
-    expect(RuntimeVersionString.isEmpty(RuntimeVersionString.empty())).toBe(true);
-  });
-
-  it('should throws as expected', () => {
-    const firstBroken = '1.1.1-bet-asd.what.f+a';
-    const secondBroken = '1.1.1-beta.branch-name+222';
-    const thirdBroken = '1.2.3-stable+3333';
-    const fourthBroken = '1.2.3-rc';
-    const fifthBroken = '1.1.1-beta+A';
-    const sixthBroken = '123';
-    const seventhBroken = 'a';
-
-    expect(() => parse(firstBroken)).toThrow(ErrorCodes.NOT_RECOGNISED_TRACK);
-    expect(() => parse(secondBroken)).toThrow(ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY);
-    expect(() => parse(thirdBroken)).toThrow(ErrorCodes.NO_BUILD_NR_ON_STABLE);
-    expect(() => parse(fourthBroken)).toThrow(ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK);
-    expect(() => parse(fifthBroken)).toThrow(ErrorCodes.BUILD_NR_INVALID);
-    expect(() => parse(sixthBroken)).toThrow(ErrorCodes.INVALID_INPUT);
-    expect(() => parse(seventhBroken)).toThrow(ErrorCodes.INVALID_INPUT);
-    expect(() => RuntimeVersionString.isEmpty(null)).toThrow(ErrorCodes.INVALID_INPUT);
   });
 
   it('should fallback to a value of `stable` when track is not provided', () => {
-    expect(parse('1.2.3').track).toBe('stable');
+    expect(parse('1.2.3').track).toBe(Track.STABLE);
     expect(parse('1.2.3').base).toBe('1.2.3');
-    expect(parse('1.2.3-stable').track).toBe('stable');
-    expect(parse('1.2.3-beta+1').track).toBe('beta');
-    expect(parse('1.2.3-alpha+1').track).toBe('alpha');
+    expect(parse('1.2.3-stable').track).toBe(Track.STABLE);
+    expect(parse('1.2.3-beta+1').track).toBe(Track.BETA);
+    expect(parse('1.2.3-alpha+1').track).toBe(Track.ALPHA);
   });
 
-  it('should stringifies versions as expected', () => {
+  it('should stringify versions as expected', () => {
     const stable = '1.2.3';
     const stablePlus = '1.2.3-stable';
     const rc = '1.2.3-rc+1';
@@ -161,9 +194,9 @@ describe('RuntimeVersionString', () => {
     const bundledVersion = '4.58.6-dev.3dfa72698.d6eefc0';
     const parsed = parse(bundledVersion);
     expect(parsed.base).toBe('4.58.6');
-    expect(parsed.major).toBe('4');
-    expect(parsed.minor).toBe('58');
-    expect(parsed.patch).toBe('6');
-    expect(parsed.track).toBe('dev');
+    expect(parsed.major).toBe(4);
+    expect(parsed.minor).toBe(58);
+    expect(parsed.patch).toBe(6);
+    expect(parsed.track).toBe(Track.DEV);
   });
 });

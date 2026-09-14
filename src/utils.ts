@@ -1,39 +1,55 @@
-import { ErrorCodes, KNOWN_TRACKS, SomeRuntimeValues, Track } from './RuntimeVersionDefinition';
+import { BuildString, ErrorCodes } from './RuntimeVersionDefinition';
+import { RuntimeVersionStringException } from './RuntimeVersionStringException';
 
-export const isValidBuildNr = (string: string) => /^[0-9]+$/.test(string);
-
-export type Predicate<T> = (v: T) => boolean;
-export type PredicateCodePair = [Predicate<SomeRuntimeValues>, string];
-
-export function throwErrorIf(predicateMessagePair: PredicateCodePair, value: SomeRuntimeValues) {
-  const [predicate, message] = predicateMessagePair;
-  if (predicate(value)) {
-    throw new Error(
-      `${message}. "${JSON.stringify(
-        value
-      )}" failed checks. Please see https://github.com/journeyapps-platform/runtime-version-string for a list of runtime version string requirements.`
-    );
+/**
+ * Decode build fields without validating them. Invalid numeric text becomes NaN
+ * so the version validator can report errors in its normal order.
+ */
+export function decodeBuildString(value: string | readonly string[]): BuildString {
+  const [rawBuildNr, ...metadata] = typeof value === 'string' ? value.split('.') : value;
+  const buildMeta = metadata.length > 0 ? metadata.join('.') : null;
+  if (rawBuildNr === '') {
+    return { buildNr: null, buildMeta };
   }
+  if (rawBuildNr == null) {
+    return { buildNr: undefined, buildMeta };
+  }
+  // Build numbers contain only decimal digits, with no sign, spaces, or exponent.
+  if (!/^[0-9]+$/.test(rawBuildNr)) {
+    return { buildNr: NaN, buildMeta };
+  }
+  return { buildNr: Number(rawBuildNr), buildMeta };
 }
-
-export function throwIfChecksFail(value: SomeRuntimeValues) {
-  checksAndCodesPairs.forEach((pair) => {
-    throwErrorIf(pair, value);
-  });
-}
-
-const exists = (value: any) => value != null;
-
-/* prettier-ignore */
-export const checksAndCodesPairs: [Predicate<SomeRuntimeValues>, string][] = [
-    [v => !KNOWN_TRACKS.find(track => track === v.track),       ErrorCodes.NOT_RECOGNISED_TRACK],
-    [v => v.track === Track.STABLE && exists(v.buildNr),            ErrorCodes.NO_BUILD_NR_ON_STABLE],
-    [v => v.track !== Track.STABLE && !exists(v.buildNr),           ErrorCodes.BUILD_NR_REQUIRED_FOR_NON_STABLE_TRACK],
-    [v => v.track !== Track.DEV && exists(v.branch),                ErrorCodes.BRANCHES_ON_DEV_TRACK_ONLY],
-    [v => exists(v.buildNr) && !isValidBuildNr(v.buildNr),      ErrorCodes.BUILD_NR_INVALID]
-];
 
 export function isDevBundledRuntime(value: string) {
   let DEV_BUNDLED_REGEX = /^(\d)+\.(\d)+\.(\d)-dev.(\w){5,}\.(\w){5,}$/;
   return !!value.match(DEV_BUNDLED_REGEX);
+}
+
+export function isValidBranch(branch: unknown): boolean {
+  // One non-empty identifier containing only ASCII letters, digits, or hyphens (e.g. feature-123).
+  return branch == null || (typeof branch === 'string' && /^[0-9A-Za-z-]+$/.test(branch));
+}
+
+export function isValidBuildMetadata(buildMeta: unknown, buildNr: BuildString['buildNr']): boolean {
+  if (buildMeta == null) {
+    return true;
+  }
+  // Dot-separated non-empty identifiers containing ASCII letters, digits, or hyphens (e.g. abc123.2026-09-14).
+  return buildNr != null && typeof buildMeta === 'string' && /^[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*$/.test(buildMeta);
+}
+
+export function validateBuildNumber(buildNr: BuildString['buildNr']): void {
+  if (buildNr != null && (!Number.isSafeInteger(buildNr) || buildNr < 0)) {
+    throw new RuntimeVersionStringException(
+      ErrorCodes.BUILD_NR_INVALID,
+      'Build numbers must be non-negative safe integers'
+    );
+  }
+}
+
+export function parseBuildString(buildString: string | readonly string[]): BuildString {
+  const decoded = decodeBuildString(buildString);
+  validateBuildNumber(decoded.buildNr);
+  return decoded;
 }

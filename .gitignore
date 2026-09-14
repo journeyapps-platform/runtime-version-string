@@ -1,4 +1,6 @@
 node_modules
 yarn-error.log
 lib
+dist
 .idea
+*.tsbuildinfo
